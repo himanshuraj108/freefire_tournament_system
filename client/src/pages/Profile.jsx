@@ -55,16 +55,28 @@ const Profile = () => {
                         <Trophy className="text-neon-red" /> Recent Tournaments
                     </h3>
                     {user.tournamentsJoined && user.tournamentsJoined.length > 0 ? (
-                        <ul className="space-y-4">
-                            {user.tournamentsJoined.map((tid, i) => (
-                                <li key={i} className="flex justify-between items-center text-zinc-400 border-b border-white/5 pb-2">
-                                    <span>Tournament ID: {tid}</span>
-                                    <span className="text-neon-blue">Joined</span>
-                                </li>
+                        <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                            {user.tournamentsJoined.map((t, i) => (
+                                <div key={i} className="flex flex-col gap-2 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                    <div className="flex justify-between items-start">
+                                        <h4 className="font-bold text-white text-sm line-clamp-1">{t.title || `Tournament #${t._id || t}`}</h4>
+                                        <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded border ${t.status === 'Open' ? 'text-green-400 border-green-500/30 bg-green-500/10' :
+                                                t.status === 'Ongoing' ? 'text-neon-red border-neon-red/30 bg-neon-red/10 animate-pulse' :
+                                                    t.status === 'Completed' ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' :
+                                                        'text-zinc-500 border-zinc-500/30'
+                                            }`}>
+                                            {t.status || 'Joined'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-end text-xs text-zinc-400">
+                                        <span>{t.startTime ? new Date(t.startTime).toLocaleDateString() : 'Date TBA'}</span>
+                                        {t.status === 'Completed' && <span className="text-amber-500 font-bold">Ended</span>}
+                                    </div>
+                                </div>
                             ))}
-                        </ul>
+                        </div>
                     ) : (
-                        <p className="text-zinc-500 text-center py-8">No tournaments joined yet.</p>
+                        <p className="text-zinc-500 text-center py-8">No tournaments joined yet. <Link to="/tournaments" className="text-neon-blue hover:underline">Join Now!</Link></p>
                     )}
                 </div>
 

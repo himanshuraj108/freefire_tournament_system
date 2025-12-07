@@ -153,19 +153,20 @@ const Tournaments = () => {
                                     </div>
                                     <button
                                         onClick={() => {
-                                            if (user?.tournamentsJoined?.includes(t._id)) {
+                                            const isJoined = user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id);
+                                            if (isJoined) {
                                                 navigate(`/tournament/${t._id}`);
                                             } else {
                                                 openJoinModal(t);
                                             }
                                         }}
-                                        disabled={t.status !== 'Open' && !user?.tournamentsJoined?.includes(t._id)}
-                                        className={`px-6 py-2 rounded-lg font-bold transition-all ${(t.status === 'Open' || user?.tournamentsJoined?.includes(t._id))
+                                        disabled={t.status !== 'Open' && !user?.tournamentsJoined?.some(joined => joined._id === t._id)}
+                                        className={`px-6 py-2 rounded-lg font-bold transition-all ${(t.status === 'Open' || user?.tournamentsJoined?.some(joined => joined._id === t._id))
                                             ? 'bg-neon-red hover:bg-red-600 text-white shadow-lg hover:shadow-neon-red/30'
                                             : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
                                             }`}
                                     >
-                                        {user?.tournamentsJoined?.includes(t._id) ? 'Enter Tournament' : 'Join Now'}
+                                        {(user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id)) ? 'Enter Tournament' : 'Join Now'}
                                     </button>
                                 </>
                             )}
