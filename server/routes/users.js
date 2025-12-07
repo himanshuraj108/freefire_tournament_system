@@ -5,10 +5,10 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
 // @route   PUT api/users/profile
-// @desc    Update user profile (Bio, Avatar, Name)
+// @desc    Update user profile (Bio, Avatar, Name, Email)
 // @access  Private
 router.put('/profile', auth, async (req, res) => {
-    const { name, bio, avatar } = req.body;
+    const { name, bio, avatar, email } = req.body;
 
     // Build user object
     const profileFields = {};
@@ -18,8 +18,16 @@ router.put('/profile', auth, async (req, res) => {
 
     try {
         let user = await User.findById(req.user.id);
-
         if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        // Email update logic
+        if (email && email !== user.email) {
+            const emailExists = await User.findOne({ email });
+            if (emailExists) return res.status(400).json({ msg: 'Email already used by another account' });
+
+            profileFields.email = email;
+            profileFields.isEmailVerified = false; // Reset verification required
+        }
 
         user = await User.findByIdAndUpdate(
             req.user.id,

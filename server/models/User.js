@@ -10,6 +10,16 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    isEmailVerified: { type: Boolean, default: false },
+    emailVerificationOtp: String,
+    emailVerificationExpire: Date,
+    resetPasswordOtp: String,
+    resetPasswordExpire: Date,
     avatar: {
         type: String,
         default: ""

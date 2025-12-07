@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 
 const Register = () => {
     const [showPassword, setShowPassword] = useState(false);
-    const [formData, setFormData] = useState({ name: '', ffUid: '', password: '', confirmPassword: '' });
+    const [formData, setFormData] = useState({ name: '', ffUid: '', email: '', password: '', confirmPassword: '' });
     const [errors, setErrors] = useState({});
     const { register } = useAuth();
     const navigate = useNavigate();
@@ -15,6 +15,7 @@ const Register = () => {
         const newErrors = {};
         if (!formData.name) newErrors.name = 'Full Name is required';
         if (!formData.ffUid) newErrors.ffUid = 'FreeFire UID is required';
+        if (!formData.email) newErrors.email = 'Email Address is required';
         if (!formData.password) newErrors.password = 'Password is required';
         if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords don't match";
         return newErrors;
@@ -29,7 +30,7 @@ const Register = () => {
         }
 
         try {
-            await register(formData.name, formData.ffUid, formData.password);
+            await register(formData.name, formData.ffUid, formData.password, formData.email);
             navigate('/');
         } catch (err) {
             setErrors({ form: 'Registration Failed. Try again.' });
@@ -71,6 +72,7 @@ const Register = () => {
                         <label className="block text-sm font-medium text-zinc-400 mb-2">FreeFire UID</label>
                         <input
                             type="text"
+                            required
                             className={`w-full bg-black/40 border ${errors.ffUid ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white focus:border-neon-red focus:ring-1 focus:ring-neon-red outline-none transition-all`}
                             placeholder="123456789"
                             onChange={(e) => {
@@ -79,6 +81,21 @@ const Register = () => {
                             }}
                         />
                         {errors.ffUid && <p className="text-red-500 text-xs mt-1">{errors.ffUid}</p>}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-400 mb-2">Email Address</label>
+                        <input
+                            type="email"
+                            required
+                            className={`w-full bg-black/40 border ${errors.email ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white focus:border-neon-red focus:ring-1 focus:ring-neon-red outline-none transition-all`}
+                            placeholder="you@example.com"
+                            onChange={(e) => {
+                                setFormData({ ...formData, email: e.target.value });
+                                if (errors.email) setErrors({ ...errors, email: '' });
+                            }}
+                        />
+                        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                     </div>
 
                     <div>

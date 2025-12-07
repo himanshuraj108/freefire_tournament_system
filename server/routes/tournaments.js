@@ -9,8 +9,14 @@ const User = require('../models/User');
 // @desc    Get all tournaments
 // @access  Public
 router.get('/', async (req, res) => {
+    console.log('GET /api/tournaments hit'); // Debug Log
     try {
-        const tournaments = await Tournament.find().sort({ date: -1 });
+        const tournaments = await Tournament.find()
+            .populate('participants.user', 'name ffUid')
+            .populate('winners.user', 'name ffUid')
+            .sort({ createdAt: -1 }); // Fixed sort specific field
+
+        console.log(`Found ${tournaments.length} tournaments`); // Debug count
         res.json(tournaments);
     } catch (err) {
         console.error(err.message);

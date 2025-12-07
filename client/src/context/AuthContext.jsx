@@ -35,8 +35,8 @@ export const AuthProvider = ({ children }) => {
         setUser(res.data.user);
     };
 
-    const register = async (name, ffUid, password) => {
-        const res = await axios.post('http://localhost:5000/api/auth/register', { name, ffUid, password });
+    const register = async (name, ffUid, password, email) => {
+        const res = await axios.post('http://localhost:5000/api/auth/register', { name, ffUid, password, email });
         localStorage.setItem('token', res.data.token);
         axios.defaults.headers.common['x-auth-token'] = res.data.token;
         setUser(res.data.user);

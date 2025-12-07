@@ -103,13 +103,12 @@ const Login = () => {
                         <p className="mb-2">
                             Don't have an account? <Link to="/register" className="text-neon-blue hover:text-white transition-colors">Register Here</Link>
                         </p>
-                        <button
-                            type="button"
-                            onClick={() => alert("Please contact the Administrator (Tournament Organizer) to reset your password.\n\nProviding your FreeFire UID will help speed up the process.")}
+                        <Link
+                            to="/forgot-password"
                             className="text-zinc-600 hover:text-neon-red transition-colors text-xs"
                         >
                             Forgot Password?
-                        </button>
+                        </Link>
                     </div>
                 </form>
             </motion.div>

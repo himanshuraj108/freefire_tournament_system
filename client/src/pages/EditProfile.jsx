@@ -14,6 +14,7 @@ const EditProfile = () => {
     // Profile State
     const [formData, setFormData] = useState({
         name: user?.name || '',
+        email: user?.email || '',
         avatar: user?.avatar || '',
         bio: user?.bio || ''
     });
@@ -91,6 +92,45 @@ const EditProfile = () => {
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 />
+                            </div>
+
+                            <div className="col-span-1 md:col-span-2">
+                                <label className="block text-sm text-zinc-400 mb-2">Email Address</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="email"
+                                        required
+                                        className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-neon-red outline-none focus:bg-black/60 transition-colors"
+                                        value={formData.email}
+                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                    {user?.isEmailVerified ? (
+                                        <span className="flex items-center gap-1 px-4 rounded-xl bg-green-500/10 text-green-500 border border-green-500/20 font-bold whitespace-nowrap">
+                                            Verified ✓
+                                        </span>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                try {
+                                                    await axios.post('http://localhost:5000/api/auth/verify-email-request');
+                                                    const code = prompt("Verification OTP sent to your email.\n\nEnter 6-digit code:");
+                                                    if (code) {
+                                                        await axios.post('http://localhost:5000/api/auth/verify-email-confirm', { otp: code });
+                                                        alert("Email Verified!");
+                                                        loadUser();
+                                                    }
+                                                } catch (err) {
+                                                    alert(err.response?.data?.msg || "Verification Failed");
+                                                }
+                                            }}
+                                            className="px-4 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold whitespace-nowrap hover:bg-amber-500/20 transition-colors"
+                                        >
+                                            Verify Now ⚠️
+                                        </button>
+                                    )}
+                                </div>
+                                <p className="text-xs text-zinc-500 mt-1">Changing email will require re-verification.</p>
                             </div>
 
                             <div className="col-span-1 md:col-span-2">

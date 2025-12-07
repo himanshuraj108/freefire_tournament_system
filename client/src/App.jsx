@@ -4,10 +4,12 @@ import Layout from './components/layout/Layout';
 import Home from './pages/Home';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
+import ForgotPassword from './pages/Auth/ForgotPassword';
 import AdminDashboard from './pages/Admin/Dashboard';
 import { AuthProvider } from './context/AuthContext';
 
 import Tournaments from './pages/Tournaments';
+import AllTournaments from './pages/AllTournaments'; // Import Archive Page
 
 import PrivateRoute from './components/routing/PrivateRoute';
 
@@ -24,6 +26,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         <Route path="/" element={
           <Layout>
@@ -34,6 +37,12 @@ function App() {
         <Route path="/tournaments" element={
           <Layout>
             <Tournaments />
+          </Layout>
+        } />
+
+        <Route path="/all-tournaments" element={
+          <Layout>
+            <AllTournaments />
           </Layout>
         } />
 

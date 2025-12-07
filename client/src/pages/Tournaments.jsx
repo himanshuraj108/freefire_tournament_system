@@ -7,48 +7,61 @@ import { useNavigate } from 'react-router-dom';
 
 const Tournaments = () => {
     const [tournaments, setTournaments] = useState([]);
-    const [selectedTournament, setSelectedTournament] = useState(null); // For Join Modal
+    const [winnerModal, setWinnerModal] = useState(null);
+    const [selectedTournament, setSelectedTournament] = useState(null);
     const [upiId, setUpiId] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const { user, loadUser } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchTournaments = async () => {
+            setLoading(true);
             try {
                 const res = await axios.get('http://localhost:5000/api/tournaments');
-                setTournaments(res.data);
+                // Filter for Active Tournaments
+                const active = res.data.filter(t => ['Open', 'Ongoing', 'ResultsPending'].includes(t.status));
+                setTournaments(active);
             } catch (err) {
                 console.error(err);
+                setError('Failed to load tournaments.');
+            } finally {
+                setLoading(false);
             }
         };
         fetchTournaments();
     }, []);
 
-    const openJoinModal = (t) => {
+    const openJoinModal = (tournament) => {
         if (!user) {
-            if (window.confirm('Please login to join. Go to Login?')) navigate('/login');
+            navigate('/login');
             return;
         }
-        setSelectedTournament(t);
-        setUpiId('');
+        setSelectedTournament(tournament);
     };
 
     const handleJoinSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
-            await axios.post(`http://localhost:5000/api/tournaments/${selectedTournament._id}/join`, { upiId });
-            alert('Joined Successfully!');
+            await axios.post(`http://localhost:5000/api/tournaments/${selectedTournament._id}/join`, {
+                upiId
+            }, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            // Success
             setSelectedTournament(null);
-
-            // Refresh list and user
+            setUpiId('');
+            // Refresh
             const res = await axios.get('http://localhost:5000/api/tournaments');
-            setTournaments(res.data);
-            loadUser();
+            const active = res.data.filter(t => ['Open', 'Ongoing', 'ResultsPending'].includes(t.status));
+            setTournaments(active);
+            if (loadUser) loadUser();
         } catch (err) {
-            alert(err.response?.data?.msg || 'Join Failed');
+            console.error(err);
+            setError(err.response?.data?.msg || 'Join failed');
         } finally {
             setLoading(false);
         }
@@ -56,10 +69,26 @@ const Tournaments = () => {
 
     return (
         <div className="space-y-8">
-            <div className="text-center space-y-4">
+            {/* Header */}
+            <div className="text-center space-y-4 relative">
                 <h1 className="text-4xl font-black italic text-white">ACTIVE <span className="text-neon-red">TOURNAMENTS</span></h1>
                 <p className="text-zinc-400">Compete with the best and win big prizes</p>
+
+                <button
+                    onClick={() => navigate('/all-tournaments')}
+                    className="absolute right-0 top-0 text-xs font-bold text-zinc-500 hover:text-white border border-zinc-800 hover:border-white/20 bg-black/40 px-4 py-2 rounded-full transition-all flex items-center gap-2"
+                >
+                    <Clock size={14} /> Tournament Archive
+                </button>
             </div>
+
+            {loading && <div className="text-center text-neon-blue animate-pulse text-xl font-bold">Loading Active Battles...</div>}
+            {error && <div className="text-center text-red-500 font-bold bg-red-500/10 p-4 rounded-xl border border-red-500/20">{error}</div>}
+            {!loading && !error && tournaments.length === 0 && (
+                <div className="text-center text-zinc-500 text-lg py-10 bg-white/5 rounded-2xl border border-white/5">
+                    No active tournaments right now. Check the <span className="text-neon-blue cursor-pointer hover:underline" onClick={() => navigate('/all-tournaments')}>Archive</span> for past winners!
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {tournaments.map((t) => (
@@ -69,20 +98,23 @@ const Tournaments = () => {
                         className="glass-card p-6 rounded-2xl relative overflow-hidden group"
                     >
                         {/* Status Badge */}
-                        <div className="absolute top-4 right-4">
+                        <div className="absolute top-4 right-4 z-10">
                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${t.status === 'Open' ? 'bg-green-500/20 text-green-400 border border-green-500/20' :
-                                    t.status === 'Ongoing' ? 'bg-neon-red/20 text-neon-red border border-neon-red/20 animate-pulse' :
+                                t.status === 'Ongoing' ? 'bg-neon-red/20 text-neon-red border border-neon-red/20 animate-pulse' :
+                                    t.status === 'Completed' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/20' :
                                         'bg-zinc-500/20 text-zinc-400 border border-zinc-500/20'
                                 }`}>
                                 {t.status === 'ResultsPending' ? 'Verifying Results' : t.status}
                             </span>
                         </div>
 
-                        <div className="mb-6">
+                        {/* Title & Desc */}
+                        < div className="mb-6" >
                             <h3 className="text-2xl font-bold text-white mb-2 line-clamp-1">{t.title}</h3>
                             <p className="text-zinc-400 text-sm">{t.description || 'No description'}</p>
                         </div>
 
+                        {/* Info Grid */}
                         <div className="space-y-3 mb-6">
                             <div className="flex items-center justify-between text-sm">
                                 <span className="flex items-center gap-2 text-zinc-400">
@@ -104,34 +136,47 @@ const Tournaments = () => {
                             </div>
                         </div>
 
-                        <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                            <div className="text-left">
-                                <p className="text-xs text-zinc-500 uppercase">Entry Fee</p>
-                                <p className="text-xl font-black text-neon-blue">${t.entryFee}</p>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    if (user?.tournamentsJoined?.includes(t._id)) {
-                                        navigate(`/tournament/${t._id}`);
-                                    } else {
-                                        openJoinModal(t);
-                                    }
-                                }}
-                                disabled={t.status !== 'Open' && !user?.tournamentsJoined?.includes(t._id)}
-                                className={`px-6 py-2 rounded-lg font-bold transition-all ${(t.status === 'Open' || user?.tournamentsJoined?.includes(t._id))
-                                    ? 'bg-neon-red hover:bg-red-600 text-white shadow-lg hover:shadow-neon-red/30'
-                                    : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                                    }`}
-                            >
-                                {user?.tournamentsJoined?.includes(t._id) ? 'Enter Tournament' : 'Join Now'}
-                            </button>
+                        {/* Buttons Footer */}
+                        <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+                            {t.status === 'Completed' ? (
+                                <button
+                                    onClick={() => setWinnerModal(t)}
+                                    className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-amber-500/10 flex items-center justify-center gap-2"
+                                >
+                                    <Trophy size={18} /> See Winners
+                                </button>
+                            ) : (
+                                <>
+                                    <div className="text-left">
+                                        <p className="text-xs text-zinc-500 uppercase">Entry Fee</p>
+                                        <p className="text-xl font-black text-neon-blue">${t.entryFee}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            if (user?.tournamentsJoined?.includes(t._id)) {
+                                                navigate(`/tournament/${t._id}`);
+                                            } else {
+                                                openJoinModal(t);
+                                            }
+                                        }}
+                                        disabled={t.status !== 'Open' && !user?.tournamentsJoined?.includes(t._id)}
+                                        className={`px-6 py-2 rounded-lg font-bold transition-all ${(t.status === 'Open' || user?.tournamentsJoined?.includes(t._id))
+                                            ? 'bg-neon-red hover:bg-red-600 text-white shadow-lg hover:shadow-neon-red/30'
+                                            : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                                            }`}
+                                    >
+                                        {user?.tournamentsJoined?.includes(t._id) ? 'Enter Tournament' : 'Join Now'}
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </motion.div>
-                ))}
-            </div>
+                ))
+                }
+            </div >
 
-            {/* JOIN MODAL */}
-            <AnimatePresence>
+            {/* JOIN MODAL (Existing) */}
+            < AnimatePresence >
                 {selectedTournament && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -184,8 +229,82 @@ const Tournaments = () => {
                         </motion.div>
                     </motion.div>
                 )}
-            </AnimatePresence>
-        </div>
+            </AnimatePresence >
+
+            {/* WINNER POPUP MODAL */}
+            < AnimatePresence >
+                {winnerModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        onClick={() => setWinnerModal(null)}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                            onClick={e => e.stopPropagation()}
+                            className="glass-card w-full max-w-lg p-0 rounded-3xl relative overflow-hidden bg-[#1a1a1a] border border-amber-500/30 shadow-2xl shadow-amber-500/20"
+                        >
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-amber-600/20 to-amber-900/20 p-6 text-center border-b border-amber-500/20 relative">
+                                <button
+                                    onClick={() => setWinnerModal(null)}
+                                    className="absolute top-4 right-4 text-amber-200/50 hover:text-white transition-colors"
+                                >
+                                    <X size={24} />
+                                </button>
+                                <Trophy className="w-16 h-16 text-amber-400 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]" />
+                                <h2 className="text-3xl font-black text-white uppercase italic tracking-wider">Champions</h2>
+                                <p className="text-amber-200/70 font-medium mt-1">{winnerModal.title}</p>
+                            </div>
+
+                            {/* Winners List */}
+                            <div className="p-8 space-y-6">
+                                {winnerModal.winners && winnerModal.winners.length > 0 ? (
+                                    winnerModal.winners.map((winner, index) => (
+                                        <div
+                                            key={index}
+                                            className={`flex items-center gap-4 p-4 rounded-xl border ${index === 0 ? 'bg-amber-500/10 border-amber-500/40' :
+                                                index === 1 ? 'bg-zinc-300/10 border-zinc-400/30' :
+                                                    'bg-orange-700/10 border-orange-700/30'
+                                                }`}
+                                        >
+                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl ${index === 0 ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-black' :
+                                                index === 1 ? 'bg-gradient-to-br from-slate-300 to-slate-500 text-black' :
+                                                    'bg-gradient-to-br from-orange-400 to-orange-700 text-black'
+                                                }`}>
+                                                {winner.position}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className={`font-bold text-lg ${index === 0 ? 'text-amber-400' :
+                                                    index === 1 ? 'text-slate-300' :
+                                                        'text-orange-400'
+                                                    }`}>
+                                                    {winner.user ? winner.user.name : 'Unknown Warrior'}
+                                                </h4>
+                                                <p className="text-zinc-500 text-xs font-mono">{winner.user ? winner.user.ffUid : 'UID: N/A'}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-xs text-zinc-400 uppercase">Prize</p>
+                                                <p className="font-bold text-white">{winner.prize}</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8 text-zinc-500 italic">
+                                        Winners data not available yet.
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-4 bg-black/20 text-center border-t border-white/5">
+                                <p className="text-zinc-500 text-xs">Prizes are distributed to connected UPI IDs.</p>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence >
+        </div >
     );
 };
 

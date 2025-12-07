@@ -32,8 +32,10 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/freefire_ga
             const admin = new User({
                 name: 'Super Admin',
                 ffUid: '123456789',
+                email: 'admin@gamers.com',
                 password: hashedPassword,
-                role: 'admin'
+                role: 'admin',
+                isEmailVerified: true
             });
 
             await admin.save();
