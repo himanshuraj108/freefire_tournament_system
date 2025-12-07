@@ -11,6 +11,7 @@ const Tournaments = () => {
     const [selectedTournament, setSelectedTournament] = useState(null);
     const [upiId, setUpiId] = useState('');
     const [playerUids, setPlayerUids] = useState([]);
+    const [groupName, setGroupName] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -52,6 +53,7 @@ const Tournaments = () => {
         if (user.ffUid) initialUids[0] = user.ffUid;
 
         setPlayerUids(initialUids);
+        setGroupName('');
     };
 
     const handleJoinSubmit = async (e) => {
@@ -60,7 +62,8 @@ const Tournaments = () => {
         try {
             await axios.post(`http://localhost:5000/api/tournaments/${selectedTournament._id}/join`, {
                 upiId,
-                playerUids
+                playerUids,
+                groupName
             }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
@@ -212,6 +215,21 @@ const Tournaments = () => {
                             </div>
 
                             <form onSubmit={handleJoinSubmit} className="space-y-4">
+                                {/* Group Name Input for Duo/Squad */}
+                                {(selectedTournament.type === 'Duo' || selectedTournament.type === 'Squad') && (
+                                    <div>
+                                        <label className="block text-sm text-zinc-400 font-bold mb-2">Team/Clan Name</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="e.g. Delta Force"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-neon-blue outline-none focus:bg-black/60 transition-colors font-bold"
+                                            value={groupName}
+                                            onChange={(e) => setGroupName(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+
                                 {/* Dynamic Team Inputs */}
                                 <div className="space-y-3">
                                     <label className="block text-sm text-zinc-400 font-bold mb-2">Team Details ({selectedTournament.type})</label>
@@ -316,7 +334,11 @@ const Tournaments = () => {
                                                         index === 2 ? 'text-orange-400' :
                                                             'text-zinc-300'
                                                     }`}>
-                                                    {winner.user ? winner.user.name : 'Unknown Warrior'}
+                                                    {winner.groupName ? (
+                                                        <span>{winner.groupName} <span className="text-xs opacity-60 font-normal block md:inline">({winner.user ? winner.user.name : 'Unknown'})</span></span>
+                                                    ) : (
+                                                        winner.user ? winner.user.name : 'Unknown Warrior'
+                                                    )}
                                                 </h4>
                                                 <p className="text-zinc-500 text-xs font-mono">{winner.user ? winner.user.ffUid : 'UID: N/A'}</p>
                                             </div>

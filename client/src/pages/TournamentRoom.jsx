@@ -116,7 +116,14 @@ const TournamentRoom = () => {
                                     {p.user.name[0]}
                                 </div>
                                 <div className="overflow-hidden w-full">
-                                    <p className="text-white font-bold truncate text-sm">{p.user.name}</p>
+                                    {p.groupName ? (
+                                        <div className="flex flex-col">
+                                            <span className="text-neon-blue font-black truncate text-sm">{p.groupName}</span>
+                                            <span className="text-zinc-400 text-xs truncate">C: {p.user.name}</span>
+                                        </div>
+                                    ) : (
+                                        <p className="text-white font-bold truncate text-sm">{p.user.name}</p>
+                                    )}
 
                                     {p.playerUids && p.playerUids.length > 0 ? (
                                         <div className="mt-1 space-y-1">

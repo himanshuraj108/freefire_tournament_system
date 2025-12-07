@@ -70,7 +70,7 @@ router.post('/:id/join', auth, async (req, res) => {
         }
 
         // UPI and Team Details Check
-        const { upiId, playerUids } = req.body;
+        const { upiId, playerUids, groupName } = req.body;
 
         if (tournament.entryFee > 0 && !upiId) {
             return res.status(400).json({ msg: 'UPI ID is required' });
@@ -85,6 +85,11 @@ router.post('/:id/join', auth, async (req, res) => {
             return res.status(400).json({ msg: `You must provide exactly ${expectedCount} FF UIDs for ${tournament.type} mode.` });
         }
 
+        // Group Name Validation for Teams
+        if ((tournament.type === 'Duo' || tournament.type === 'Squad') && (!groupName || !groupName.trim())) {
+            return res.status(400).json({ msg: 'Group/Team Name is required for ' + tournament.type });
+        }
+
         // Ensure all UIDs are provided and valid strings
         if (playerUids.some(uid => !uid || typeof uid !== 'string' || uid.trim() === '')) {
             return res.status(400).json({ msg: 'All FF UIDs must be valid.' });
@@ -94,7 +99,8 @@ router.post('/:id/join', auth, async (req, res) => {
         tournament.participants.unshift({
             user: req.user.id,
             upiId: upiId || '',
-            playerUids: playerUids
+            playerUids: playerUids,
+            groupName: groupName || ''
         });
         await tournament.save();
 
@@ -155,7 +161,16 @@ router.post('/:id/declare-winners', [auth, admin], async (req, res) => {
         const tournament = await Tournament.findById(req.params.id);
         if (!tournament) return res.status(404).json({ msg: 'Not Found' });
 
-        tournament.winners = winners;
+        // Enrich winners with groupName if available for that user
+        const enrichedWinners = winners.map(winner => {
+            const participant = tournament.participants.find(p => p.user && p.user.toString() === winner.user);
+            return {
+                ...winner,
+                groupName: participant ? participant.groupName : ''
+            };
+        });
+
+        tournament.winners = enrichedWinners;
         tournament.status = 'Completed';
         tournament.endTime = Date.now();
 

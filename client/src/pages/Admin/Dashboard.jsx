@@ -475,7 +475,7 @@ const AdminDashboard = () => {
                                                     <option value="">Select User</option>
                                                     {selectedTournament.participants.slice().reverse().map((p, i) => (
                                                         <option key={p.user ? p.user._id : i} value={p.user ? p.user._id : ''}>
-                                                            {p.user ? p.user.name : 'Unknown'} ({p.user ? p.user.ffUid : 'N/A'})
+                                                            {p.groupName ? `${p.groupName} (C: ${p.user ? p.user.name : '-'})` : `${p.user ? p.user.name : 'Unknown'} (${p.user ? p.user.ffUid : 'N/A'})`}
                                                         </option>
                                                     ))}
                                                 </select>
@@ -506,7 +506,16 @@ const AdminDashboard = () => {
                                             {selectedTournament.participants.map((p, i) => (
                                                 <tr key={i} className="border-b border-white/5 hover:bg-white/5">
                                                     <td className="py-3 pl-4 align-top">{i + 1}</td>
-                                                    <td className="py-3 font-bold text-white align-top">{p.user?.name || 'Loading...'}</td>
+                                                    <td className="py-3 font-bold text-white align-top">
+                                                        {p.groupName ? (
+                                                            <div>
+                                                                <span className="text-neon-blue">{p.groupName}</span>
+                                                                <span className="block text-xs text-zinc-500 font-normal">C: {p.user?.name}</span>
+                                                            </div>
+                                                        ) : (
+                                                            p.user?.name || 'Loading...'
+                                                        )}
+                                                    </td>
                                                     <td className="py-3 align-top">
                                                         {p.playerUids && p.playerUids.length > 0 ? (
                                                             <div className="flex flex-col gap-1 text-xs">

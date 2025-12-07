@@ -160,7 +160,11 @@ const AllTournaments = () => {
                                                         index === 2 ? 'text-orange-400' :
                                                             'text-white'
                                                     }`}>
-                                                    {winner.user ? winner.user.name : 'Unknown Warrior'}
+                                                    {winner.groupName ? (
+                                                        <span>{winner.groupName} <span className="text-xs opacity-60 font-normal block md:inline">({winner.user ? winner.user.name : 'Unknown'})</span></span>
+                                                    ) : (
+                                                        winner.user ? winner.user.name : 'Unknown Warrior'
+                                                    )}
                                                 </h4>
                                                 <p className="text-zinc-500 text-xs font-mono">{winner.user ? winner.user.ffUid : 'UID: N/A'}</p>
                                             </div>
