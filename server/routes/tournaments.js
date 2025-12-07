@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
 // @desc    Create a tournament
 // @access  Admin
 router.post('/', [auth, admin], async (req, res) => {
-    const { title, type, entryFee, prizePool, schedule, maxPlayers } = req.body;
+    const { title, type, entryFee, prizePool, schedule, maxPlayers, prizeDistribution, totalWinners } = req.body;
     try {
         const newTournament = new Tournament({
             title,
@@ -36,7 +36,9 @@ router.post('/', [auth, admin], async (req, res) => {
             entryFee,
             prizePool,
             schedule,
-            maxPlayers
+            maxPlayers,
+            prizeDistribution,
+            totalWinners
         });
         const tournament = await newTournament.save();
         res.json(tournament);
@@ -67,16 +69,32 @@ router.post('/:id/join', auth, async (req, res) => {
             return res.status(400).json({ msg: 'Tournament is full' });
         }
 
-        // UPI Check
-        const { upiId } = req.body;
+        // UPI and Team Details Check
+        const { upiId, playerUids } = req.body;
+
         if (tournament.entryFee > 0 && !upiId) {
             return res.status(400).json({ msg: 'UPI ID is required' });
+        }
+
+        // Validate Team Size based on Type
+        let expectedCount = 1;
+        if (tournament.type === 'Duo') expectedCount = 2;
+        if (tournament.type === 'Squad') expectedCount = 4;
+
+        if (!playerUids || !Array.isArray(playerUids) || playerUids.length !== expectedCount) {
+            return res.status(400).json({ msg: `You must provide exactly ${expectedCount} FF UIDs for ${tournament.type} mode.` });
+        }
+
+        // Ensure all UIDs are provided and valid strings
+        if (playerUids.some(uid => !uid || typeof uid !== 'string' || uid.trim() === '')) {
+            return res.status(400).json({ msg: 'All FF UIDs must be valid.' });
         }
 
         // Add user
         tournament.participants.unshift({
             user: req.user.id,
-            upiId: upiId || ''
+            upiId: upiId || '',
+            playerUids: playerUids
         });
         await tournament.save();
 

@@ -62,7 +62,7 @@ const AllTournaments = () => {
                         {/* Status Badge */}
                         <div className="absolute top-4 right-4 z-10">
                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${t.status === 'Completed' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/20' :
-                                    'bg-zinc-500/20 text-zinc-400 border border-zinc-500/20'
+                                'bg-zinc-500/20 text-zinc-400 border border-zinc-500/20'
                                 }`}>
                                 {t.status}
                             </span>
@@ -136,26 +136,29 @@ const AllTournaments = () => {
                             </div>
 
                             {/* Winners List */}
-                            <div className="p-8 space-y-6">
+                            <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
                                 {winnerModal.winners && winnerModal.winners.length > 0 ? (
                                     winnerModal.winners.map((winner, index) => (
                                         <div
                                             key={index}
                                             className={`flex items-center gap-4 p-4 rounded-xl border ${index === 0 ? 'bg-amber-500/10 border-amber-500/40' :
-                                                    index === 1 ? 'bg-zinc-300/10 border-zinc-400/30' :
-                                                        'bg-orange-700/10 border-orange-700/30'
+                                                index === 1 ? 'bg-zinc-300/10 border-zinc-400/30' :
+                                                    index === 2 ? 'bg-orange-700/10 border-orange-700/30' :
+                                                        'bg-white/5 border-white/10 text-zinc-400'
                                                 }`}
                                         >
                                             <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl ${index === 0 ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-black' :
-                                                    index === 1 ? 'bg-gradient-to-br from-slate-300 to-slate-500 text-black' :
-                                                        'bg-gradient-to-br from-orange-400 to-orange-700 text-black'
+                                                index === 1 ? 'bg-gradient-to-br from-slate-300 to-slate-500 text-black' :
+                                                    index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-black' :
+                                                        'bg-zinc-800 text-gray-400 border border-white/10'
                                                 }`}>
                                                 {winner.position}
                                             </div>
                                             <div className="flex-1">
                                                 <h4 className={`font-bold text-lg ${index === 0 ? 'text-amber-400' :
-                                                        index === 1 ? 'text-slate-300' :
-                                                            'text-orange-400'
+                                                    index === 1 ? 'text-slate-300' :
+                                                        index === 2 ? 'text-orange-400' :
+                                                            'text-white'
                                                     }`}>
                                                     {winner.user ? winner.user.name : 'Unknown Warrior'}
                                                 </h4>

@@ -111,15 +111,29 @@ const TournamentRoom = () => {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {tournament.participants.map((p, i) => (
-                            <div key={i} className="bg-black/40 p-3 rounded-lg flex items-center gap-3 border border-white/5 hover:bg-white/5 transition-colors group">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center font-bold text-sm border border-white/10">
+                            <div key={i} className="bg-black/40 p-3 rounded-lg flex items-start gap-3 border border-white/5 hover:bg-white/5 transition-colors group">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center font-bold text-sm border border-white/10 shrink-0">
                                     {p.user.name[0]}
                                 </div>
-                                <div className="overflow-hidden">
+                                <div className="overflow-hidden w-full">
                                     <p className="text-white font-bold truncate text-sm">{p.user.name}</p>
-                                    <p className="text-xs text-zinc-500 font-mono flex items-center gap-1">
-                                        UID: <span className="text-neon-blue">{p.user.ffUid}</span>
-                                    </p>
+
+                                    {p.playerUids && p.playerUids.length > 0 ? (
+                                        <div className="mt-1 space-y-1">
+                                            {p.playerUids.map((uid, idx) => (
+                                                <div key={idx} className="flex justify-between text-xs font-mono">
+                                                    <span className={idx === 0 ? "text-neon-blue font-bold" : "text-zinc-500"}>
+                                                        {idx === 0 ? "C" : `#${idx + 1}`}
+                                                    </span>
+                                                    <span className="text-zinc-300">{uid}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-zinc-500 font-mono flex items-center gap-1 mt-1">
+                                            UID: <span className="text-neon-blue">{p.user.ffUid}</span>
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -153,10 +167,10 @@ const TournamentRoom = () => {
                                     </span>
                                 </div>
                                 <div className={`px-4 py-2 rounded-2xl max-w-[85%] break-words ${isAdminMsg
-                                        ? 'bg-gradient-to-r from-neon-red/20 to-orange-500/20 border border-neon-red/50 text-white shadow-[0_0_15px_rgba(255,0,0,0.2)]' // Admin Style
-                                        : msg.sender._id === user?.id
-                                            ? 'bg-neon-blue/20 text-white rounded-br-none border border-neon-blue/30'
-                                            : 'bg-white/10 text-zinc-200 rounded-bl-none'
+                                    ? 'bg-gradient-to-r from-neon-red/20 to-orange-500/20 border border-neon-red/50 text-white shadow-[0_0_15px_rgba(255,0,0,0.2)]' // Admin Style
+                                    : msg.sender._id === user?.id
+                                        ? 'bg-neon-blue/20 text-white rounded-br-none border border-neon-blue/30'
+                                        : 'bg-white/10 text-zinc-200 rounded-bl-none'
                                     }`}>
                                     {msg.text}
                                 </div>

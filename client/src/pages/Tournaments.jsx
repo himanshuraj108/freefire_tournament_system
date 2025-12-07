@@ -10,6 +10,7 @@ const Tournaments = () => {
     const [winnerModal, setWinnerModal] = useState(null);
     const [selectedTournament, setSelectedTournament] = useState(null);
     const [upiId, setUpiId] = useState('');
+    const [playerUids, setPlayerUids] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -40,6 +41,17 @@ const Tournaments = () => {
             return;
         }
         setSelectedTournament(tournament);
+
+        // Initialize Team UIDs based on type
+        let slots = 1;
+        if (tournament.type === 'Duo') slots = 2;
+        if (tournament.type === 'Squad') slots = 4;
+
+        const initialUids = Array(slots).fill('');
+        // Prefill first slot with user's FF UID if available
+        if (user.ffUid) initialUids[0] = user.ffUid;
+
+        setPlayerUids(initialUids);
     };
 
     const handleJoinSubmit = async (e) => {
@@ -47,13 +59,15 @@ const Tournaments = () => {
         setLoading(true);
         try {
             await axios.post(`http://localhost:5000/api/tournaments/${selectedTournament._id}/join`, {
-                upiId
+                upiId,
+                playerUids
             }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             // Success
             setSelectedTournament(null);
             setUpiId('');
+            setPlayerUids([]);
             // Refresh
             const res = await axios.get('http://localhost:5000/api/tournaments');
             const active = res.data.filter(t => ['Open', 'Ongoing', 'ResultsPending'].includes(t.status));
@@ -185,7 +199,7 @@ const Tournaments = () => {
                     >
                         <motion.div
                             initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-                            className="glass-card w-full max-w-md p-8 rounded-3xl relative"
+                            className="glass-card w-full max-w-md p-8 rounded-3xl relative max-h-[85vh] overflow-y-auto custom-scrollbar"
                         >
                             <button onClick={() => setSelectedTournament(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><X /></button>
 
@@ -198,13 +212,32 @@ const Tournaments = () => {
                             </div>
 
                             <form onSubmit={handleJoinSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm text-zinc-400 mb-2">My Game Name (From Profile)</label>
-                                    <input type="text" value={user.name} disabled className="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-zinc-500 cursor-not-allowed" />
+                                {/* Dynamic Team Inputs */}
+                                <div className="space-y-3">
+                                    <label className="block text-sm text-zinc-400 font-bold mb-2">Team Details ({selectedTournament.type})</label>
+                                    {playerUids.map((uid, index) => (
+                                        <div key={index}>
+                                            <label className="text-xs text-zinc-500 mb-1 block">
+                                                {index === 0 ? 'Captain UID (You)' : `Player ${index + 1} UID`}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder={index === 0 ? "Your FF UID" : "Teammate UID"}
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-neon-red outline-none focus:bg-black/60 transition-colors font-mono"
+                                                value={uid}
+                                                onChange={(e) => {
+                                                    const newUids = [...playerUids];
+                                                    newUids[index] = e.target.value;
+                                                    setPlayerUids(newUids);
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm text-zinc-400 mb-2">Confirm UPI ID for Payment</label>
+                                <div className="pt-2">
+                                    <label className="block text-sm text-zinc-400 mb-2">Confirm UPI ID for Prize Payment</label>
                                     <div className="relative">
                                         <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-5 h-5" />
                                         <input
@@ -216,7 +249,7 @@ const Tournaments = () => {
                                             onChange={(e) => setUpiId(e.target.value)}
                                         />
                                     </div>
-                                    <p className="text-xs text-zinc-500 mt-2">Win prizes will be sent to this ID if you win.</p>
+                                    <p className="text-xs text-zinc-500 mt-2">Team prizes will be sent to this ID.</p>
                                 </div>
 
                                 <button
@@ -259,26 +292,29 @@ const Tournaments = () => {
                             </div>
 
                             {/* Winners List */}
-                            <div className="p-8 space-y-6">
+                            <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
                                 {winnerModal.winners && winnerModal.winners.length > 0 ? (
                                     winnerModal.winners.map((winner, index) => (
                                         <div
                                             key={index}
                                             className={`flex items-center gap-4 p-4 rounded-xl border ${index === 0 ? 'bg-amber-500/10 border-amber-500/40' :
                                                 index === 1 ? 'bg-zinc-300/10 border-zinc-400/30' :
-                                                    'bg-orange-700/10 border-orange-700/30'
+                                                    index === 2 ? 'bg-orange-700/10 border-orange-700/30' :
+                                                        'bg-white/5 border-white/10'
                                                 }`}
                                         >
                                             <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl ${index === 0 ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-black' :
                                                 index === 1 ? 'bg-gradient-to-br from-slate-300 to-slate-500 text-black' :
-                                                    'bg-gradient-to-br from-orange-400 to-orange-700 text-black'
+                                                    index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-black' :
+                                                        'bg-zinc-800 text-zinc-400 border border-white/10'
                                                 }`}>
                                                 {winner.position}
                                             </div>
                                             <div className="flex-1">
                                                 <h4 className={`font-bold text-lg ${index === 0 ? 'text-amber-400' :
                                                     index === 1 ? 'text-slate-300' :
-                                                        'text-orange-400'
+                                                        index === 2 ? 'text-orange-400' :
+                                                            'text-zinc-300'
                                                     }`}>
                                                     {winner.user ? winner.user.name : 'Unknown Warrior'}
                                                 </h4>

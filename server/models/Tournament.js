@@ -16,8 +16,16 @@ const tournamentSchema = new mongoose.Schema({
         required: true,
     },
     prizePool: {
-        type: String, // Text description or number
+        type: String,
         required: true,
+    },
+    prizeDistribution: [{
+        rank: Number,
+        prize: String,
+    }],
+    totalWinners: {
+        type: Number,
+        default: 3
     },
     schedule: {
         type: Date,
@@ -46,6 +54,8 @@ const tournamentSchema = new mongoose.Schema({
             default: Date.now,
         },
         upiId: String,
+        playerUids: [String], // Array of FF UIDs for the team (Leader + Members)
+        groupName: String, // Team/Squad Name
         paymentStatus: {
             type: String,
             enum: ['Pending', 'Verified'],
@@ -58,6 +68,7 @@ const tournamentSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
         },
+        groupName: String, // Snapshotted group name
         prize: String
     }],
 
