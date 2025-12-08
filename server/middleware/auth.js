@@ -13,7 +13,22 @@ module.exports = function (req, res, next) {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded.user;
-        next();
+
+        // Check Ban Status
+        const User = require('../models/User');
+        const checkUser = async () => {
+            const user = await User.findById(req.user.id);
+            if (user && (user.banStatus === 'permanent' || (user.banStatus === 'temporary' && user.banExpires > Date.now()))) {
+                return res.status(403).json({ msg: 'Access Denied: You are banned.' });
+            }
+            next();
+        };
+
+        checkUser().catch(err => {
+            console.error(err);
+            res.status(500).send('Server Error during Auth');
+        });
+
     } catch (err) {
         res.status(401).json({ msg: 'Token is not valid' });
     }

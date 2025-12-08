@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Video, Users, Plus, X } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminDashboard = () => {
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState('tournaments');
     const [tournaments, setTournaments] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -96,12 +98,94 @@ const AdminDashboard = () => {
     // Winner Declaration State - Array of user IDs
     const [winnersList, setWinnersList] = useState([]);
 
+    // User Management State
+    const [users, setUsers] = useState([]);
+    const [banModal, setBanModal] = useState({ show: false, user: null });
+    const [banData, setBanData] = useState({ type: 'temporary', duration: '24' }); // duration in hours
+
+    const fetchUsers = async () => {
+        try {
+            const res = await axios.get('http://localhost:5000/api/users', { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            setUsers(res.data);
+        } catch (err) { console.error('Failed to fetch users', err); }
+    };
+
     useEffect(() => {
         if (activeTab === 'tournaments') fetchTournaments();
         if (activeTab === 'videos') fetchVideos();
+        if (activeTab === 'users') fetchUsers();
     }, [activeTab]);
 
-    // Update prize distribution array when total winners changes
+    const handleRequestBan = async (u) => {
+        if (!window.confirm(`Request to ban ${u.name}?`)) return;
+        try {
+            await axios.put(`http://localhost:5000/api/users/${u._id}/ban`, {
+                banStatus: 'temporary' // Default placeholder, Super Admin decides
+            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            alert('Ban request submitted.');
+            fetchUsers();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to request ban');
+        }
+    };
+
+    const handleRejectBan = async (u) => {
+        if (!window.confirm(`Reject ban request for ${u.name}?`)) return;
+        try {
+            await axios.put(`http://localhost:5000/api/users/${u._id}/ban-manage`, {
+                action: 'reject'
+            }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            fetchUsers();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to reject ban');
+        }
+    };
+
+    const handleBanUser = async () => {
+        if (!banModal.user) return;
+        try {
+            let banExpires = null;
+            if (banData.type === 'temporary') {
+                banExpires = new Date(Date.now() + parseInt(banData.duration) * 60 * 60 * 1000);
+            }
+
+            // Super Admin Approval/Direct Ban Logic
+            // If checking a request, we are technically approving it.
+            // The endpoint /ban-manage with action='approve' works, OR /ban works too (as per my backend logic).
+            // Let's use /ban-manage for clarity if approving, but /ban covers both.
+            // Actually, let's use /ban-manage specifically for approvals if we want to be explicit,
+            // but since I made /ban handle "Direct Ban & Clear Request", I can just use /ban here.
+            // Wait, if I use /ban, it's consistent.
+
+            if (user.role === 'super-admin' && banModal.user.banRequest?.status === 'pending') {
+                await axios.put(`http://localhost:5000/api/users/${banModal.user._id}/ban-manage`, {
+                    action: 'approve',
+                    banStatus: banData.type,
+                    banExpires
+                }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            } else {
+                await axios.put(`http://localhost:5000/api/users/${banModal.user._id}/ban`, {
+                    banStatus: banData.type,
+                    banExpires
+                }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+            }
+
+            alert(`User ${banModal.user.name} banned successfully.`);
+            setBanModal({ show: false, user: null });
+            fetchUsers();
+        } catch (err) {
+            console.error('Ban failed', err);
+            alert('Failed to ban user');
+        }
+    };
+
+    // ... (keep handleUnbanUser as is)
+
+    // ...
+
+
     // Auto-calculate prizes when config changes
     useEffect(() => {
         if (!isAutoPrize) return;
@@ -302,8 +386,8 @@ const AdminDashboard = () => {
         try {
             if (activeTab === 'tournaments') {
                 // Map the simple string array to the object structure expected by backend schema
-                // Actually the backend just receives the array and saves it, but schema expects { rank, prize } logic if we want strictness.
-                // But the schema I defined was: prizeDistribution: [{ rank: Number, prize: String }]
+                // Actually the backend just receives the array and saves it, but schema expects {rank, prize} logic if we want strictness.
+                // But the schema I defined was: prizeDistribution: [{rank: Number, prize: String }]
                 // So I need to transform formData.prizeDistribution (array of strings) to that object structure.
 
                 const distributionArray = formData.prizeDistribution.map((p, i) => ({
@@ -427,7 +511,200 @@ const AdminDashboard = () => {
                         </div>
                     </motion.div>
                 ))}
+
+                {/* Users Tab */}
+                {activeTab === 'users' && (
+                    <div className="col-span-full glass-card p-6 rounded-2xl">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="text-zinc-500 border-b border-white/10">
+                                    <tr>
+                                        <th className="pb-3 pl-4">Name</th>
+                                        <th className="pb-3">FF UID</th>
+                                        {user.role === 'super-admin' && <th className="pb-3">Email</th>}
+                                        <th className="pb-3">Role</th>
+                                        <th className="pb-3">Status</th>
+                                        <th className="pb-3 text-right pr-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-zinc-300">
+                                    {users.map((u) => (
+                                        <tr key={u._id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                            <td className="py-4 pl-4 font-bold text-white">{u.name}</td>
+                                            <td className="py-4 font-mono text-neon-blue">{u.ffUid}</td>
+                                            {user.role === 'super-admin' && <td className="py-4 text-zinc-400">{u.email}</td>}
+                                            <td className="py-4">
+                                                <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${u.role === 'admin' ? 'bg-purple-500/20 text-purple-400' : 'bg-zinc-500/10 text-zinc-400'
+                                                    }`}>{u.role}</span>
+                                            </td>
+                                            <td className="py-4">
+                                                {u.banStatus === 'none' ? (
+                                                    <span className="text-green-400 text-xs font-bold bg-green-500/10 px-2 py-1 rounded">Active</span>
+                                                ) : (
+                                                    <div className="flex flex-col">
+                                                        <span className="text-red-500 text-xs font-bold bg-red-500/10 px-2 py-1 rounded w-fit mb-1">
+                                                            {u.banStatus === 'permanent' ? 'BANNED (Perm)' : 'Temp Ban'}
+                                                        </span>
+                                                        {u.banStatus === 'temporary' && (
+                                                            <span className="text-[10px] text-zinc-500">Until: {new Date(u.banExpires).toLocaleString()}</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="py-4 text-right pr-4 flex justify-end gap-2 items-center">
+                                                {/* Role Toggle (Super Admin Only) */}
+                                                {user.role === 'super-admin' && u.role !== 'super-admin' && (
+                                                    u.role === 'admin' ? (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!window.confirm(`Demote ${u.name} to User?`)) return;
+                                                                try {
+                                                                    await axios.put(`http://localhost:5000/api/users/${u._id}/role`, { role: 'user' }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                                    fetchUsers();
+                                                                } catch (err) { alert('Failed to demote'); }
+                                                            }}
+                                                            className="text-xs font-bold border border-zinc-500 text-zinc-400 hover:bg-zinc-500/20 px-3 py-1 rounded transition-colors mr-2"
+                                                        >
+                                                            Demote
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!window.confirm(`Promote ${u.name} to Admin?`)) return;
+                                                                try {
+                                                                    await axios.put(`http://localhost:5000/api/users/${u._id}/role`, { role: 'admin' }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                                    fetchUsers();
+                                                                } catch (err) { alert('Failed to promote'); }
+                                                            }}
+                                                            className="text-xs font-bold border border-purple-500/50 text-purple-400 hover:bg-purple-500/20 px-3 py-1 rounded transition-colors mr-2"
+                                                        >
+                                                            Promote
+                                                        </button>
+                                                    )
+                                                )}
+
+                                                {/* Ban Actions */}
+                                                {u.role !== 'admin' && u.role !== 'super-admin' && ( // Prevent banning admins
+                                                    u.banStatus !== 'none' ? (
+                                                        <button
+                                                            onClick={() => handleUnbanUser(u._id)}
+                                                            className="text-xs font-bold border border-green-500/50 text-green-400 hover:bg-green-500/20 px-3 py-1 rounded transition-colors"
+                                                        >
+                                                            Unban
+                                                        </button>
+                                                    ) : (
+                                                        // Active User Logic
+                                                        u.banRequest?.status === 'pending' ? (
+                                                            user.role === 'super-admin' ? (
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        onClick={() => handleRejectBan(u)}
+                                                                        className="text-xs font-bold border border-red-500 text-red-400 hover:bg-red-500/20 px-2 py-1 rounded transition-colors"
+                                                                        title="Reject Request"
+                                                                    >
+                                                                        <X className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setBanModal({ show: true, user: u })}
+                                                                        className="text-xs font-bold border border-amber-500 text-amber-400 hover:bg-amber-500/20 px-3 py-1 rounded transition-colors animate-pulse"
+                                                                    >
+                                                                        Review Ban
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-xs font-bold text-amber-500 border border-amber-500/30 bg-amber-500/10 px-3 py-1 rounded">
+                                                                    Pending Review
+                                                                </span>
+                                                            )
+                                                        ) : (
+                                                            user.role === 'super-admin' ? (
+                                                                <button
+                                                                    onClick={() => setBanModal({ show: true, user: u })}
+                                                                    className="text-xs font-bold border border-red-500/50 text-red-400 hover:bg-red-500/20 px-3 py-1 rounded transition-colors"
+                                                                >
+                                                                    Ban
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => handleRequestBan(u)}
+                                                                    className="text-xs font-bold border border-red-500/50 text-red-400 hover:bg-red-500/20 px-3 py-1 rounded transition-colors"
+                                                                >
+                                                                    Request Ban
+                                                                </button>
+                                                            )
+                                                        )
+                                                    )
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {users.length === 0 && <p className="text-center text-zinc-500 py-8">No registered users found.</p>}
+                        </div>
+                    </div>
+                )}
             </div>
+
+            {/* Ban Modal */}
+            <AnimatePresence>
+                {banModal.show && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+                            className="glass-card w-full max-w-sm p-6 rounded-2xl relative border border-red-500/30 shadow-2xl shadow-red-500/10"
+                        >
+                            <button onClick={() => setBanModal({ show: false, user: null })} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><X /></button>
+                            <h2 className="text-xl font-bold text-white mb-4">Ban User: <span className="text-neon-red">{banModal.user?.name}</span></h2>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs text-zinc-500 font-bold mb-1 block">Ban Type</label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setBanData({ ...banData, type: 'temporary' })}
+                                            className={`flex-1 py-2 rounded-lg text-sm font-bold border ${banData.type === 'temporary' ? 'bg-amber-500 text-black border-amber-500' : 'bg-transparent text-zinc-400 border-zinc-700'}`}
+                                        >
+                                            Temporary
+                                        </button>
+                                        <button
+                                            onClick={() => setBanData({ ...banData, type: 'permanent' })}
+                                            className={`flex-1 py-2 rounded-lg text-sm font-bold border ${banData.type === 'permanent' ? 'bg-red-600 text-white border-red-600' : 'bg-transparent text-zinc-400 border-zinc-700'}`}
+                                        >
+                                            Permanent
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {banData.type === 'temporary' && (
+                                    <div>
+                                        <label className="text-xs text-zinc-500 font-bold mb-1 block">Duration</label>
+                                        <select
+                                            className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-amber-400"
+                                            value={banData.duration}
+                                            onChange={(e) => setBanData({ ...banData, duration: e.target.value })}
+                                        >
+                                            <option value="1">1 Hour</option>
+                                            <option value="6">6 Hours</option>
+                                            <option value="24">24 Hours (1 Day)</option>
+                                            <option value="72">3 Days</option>
+                                            <option value="168">7 Days</option>
+                                            <option value="720">30 Days</option>
+                                        </select>
+                                    </div>
+                                )}
+
+                                <button onClick={handleBanUser} className="w-full btn-danger py-3 rounded-xl font-bold mt-2">
+                                    Confirm Ban
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Create/Add Modal */}
             <AnimatePresence>

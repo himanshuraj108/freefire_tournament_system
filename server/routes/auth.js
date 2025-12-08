@@ -67,6 +67,14 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
 
+        // Check Ban Status
+        if (user.banStatus === 'permanent') {
+            return res.status(403).json({ msg: 'Your account has been permanently banned.' });
+        }
+        if (user.banStatus === 'temporary' && user.banExpires > Date.now()) {
+            return res.status(403).json({ msg: `You are banned until ${new Date(user.banExpires).toLocaleString()}` });
+        }
+
         const payload = {
             user: {
                 id: user.id,

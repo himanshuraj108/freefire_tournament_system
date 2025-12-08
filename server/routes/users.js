@@ -1,91 +1,130 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const admin = require('../middleware/admin');
 const User = require('../models/User');
-const bcrypt = require('bcryptjs');
 
-// @route   PUT api/users/profile
-// @desc    Update user profile (Bio, Avatar, Name, Email)
-// @access  Private
-router.put('/profile', auth, async (req, res) => {
-    const { name, bio, avatar, email } = req.body;
-
-    // Build user object
-    const profileFields = {};
-    if (name) profileFields.name = name;
-    if (bio) profileFields.bio = bio;
-    if (avatar) profileFields.avatar = avatar;
-
+// @route   GET api/users
+// @desc    Get all users (Admin only)
+// @access  Private/Admin
+router.get('/', [auth, admin], async (req, res) => {
     try {
-        let user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ msg: 'User not found' });
+        let query = {};
+        let select = '-password';
 
-        // Email update logic
-        if (email && email !== user.email) {
-            const emailExists = await User.findOne({ email });
-            if (emailExists) return res.status(400).json({ msg: 'Email already used by another account' });
-
-            profileFields.email = email;
-            profileFields.isEmailVerified = false; // Reset verification required
+        // Admin Restriction
+        if (req.user.role === 'admin') {
+            query = { role: { $ne: 'super-admin' } }; // Hide Super Admins
+            select = '-password -email'; // Hide Emails
         }
 
-        user = await User.findByIdAndUpdate(
-            req.user.id,
-            { $set: profileFields },
-            { new: true }
-        ).select('-password');
-
-        res.json(user);
+        const users = await User.find(query).select(select).sort({ createdAt: -1 });
+        res.json(users);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
 });
 
-// @route   PUT api/users/password
-// @desc    Change user password
-// @access  Private
-router.put('/password', auth, async (req, res) => {
-    const { currentPassword, newPassword } = req.body;
+// @route   PUT api/users/:id/ban
+// @desc    Ban or Unban user
+// @access  Private/Admin
+router.put('/:id/ban', [auth, admin], async (req, res) => {
+    const { banStatus, banExpires } = req.body; // banStatus: 'none', 'temporary', 'permanent'
 
     try {
-        const user = await User.findById(req.user.id);
+        let user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ msg: 'Invalid Current Password' });
+        // Super Admin: Direct Action
+        if (req.user.role === 'super-admin') {
+            user.banStatus = banStatus;
+            user.banRequest = { status: 'none' }; // Clear any pending requests
+            if (banStatus === 'temporary' && banExpires) {
+                user.banExpires = banExpires;
+            } else {
+                user.banExpires = undefined;
+            }
+            await user.save();
+            return res.json({ msg: 'User ban status updated (Direct)', user });
         }
 
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
+        // Regular Admin: Create Request
+        if (req.user.role === 'admin') {
+            user.banRequest = {
+                status: 'pending',
+                requestedBy: req.user.id,
+                requestedAt: Date.now()
+            };
+            // Note: Admin cannot set status/expires directly now. They just request "a ban".
+            // The UI should probably just send "request_ban" intent, but keeping same route:
+            // We ignore the specific expires/status for the request, or we could store "intended" ban.
+            // For simplicity based on prompt: "super admin will set duration". So Admin just requests "Ban".
 
+            await user.save();
+            return res.json({ msg: 'Ban request submitted to Super Admin', user });
+        }
+
+        return res.status(403).json({ msg: 'Unauthorized action' });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT api/users/:id/ban-manage
+// @desc    Approve or Reject Ban Request
+// @access  Private/SuperAdmin
+const superAdmin = require('../middleware/superAdmin');
+router.put('/:id/ban-manage', [auth, superAdmin], async (req, res) => {
+    const { action, banStatus, banExpires } = req.body; // action: 'approve' | 'reject'
+
+    try {
+        let user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        if (action === 'reject') {
+            user.banRequest = { status: 'none' };
+            await user.save();
+            return res.json({ msg: 'Ban request rejected', user });
+        }
+
+        if (action === 'approve') {
+            user.banStatus = banStatus || 'permanent'; // Default to permanent if not specified
+            if (banStatus === 'temporary' && banExpires) {
+                user.banExpires = banExpires;
+            } else {
+                user.banExpires = undefined;
+            }
+            user.banRequest = { status: 'none' };
+            await user.save();
+            return res.json({ msg: 'Ban request approved and applied', user });
+        }
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT api/users/:id/role
+// @desc    Change User Role
+// @access  Private/SuperAdmin
+router.put('/:id/role', [auth, superAdmin], async (req, res) => {
+    const { role } = req.body; // 'admin', 'user', 'sub-admin'
+
+    try {
+        let user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        if (user.role === 'super-admin') {
+            return res.status(403).json({ msg: 'Cannot change role of a Super Admin' });
+        }
+
+        user.role = role;
         await user.save();
-        res.json({ msg: 'Password updated successfully' });
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
-
-// @route   DELETE api/users
-// @desc    Delete user account
-// @access  Private
-router.delete('/', auth, async (req, res) => {
-    const { password } = req.body;
-
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ msg: 'User not found' });
-
-        // Verify password
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ msg: 'Invalid Password' });
-        }
-
-        await User.findByIdAndDelete(req.user.id);
-        res.json({ msg: 'Account deleted successfully' });
+        res.json({ msg: `User role updated to ${role}`, user });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

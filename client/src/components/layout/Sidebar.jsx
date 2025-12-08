@@ -14,7 +14,7 @@ const Sidebar = ({ isOpen }) => {
         { icon: Users, label: 'Profile', path: '/profile' },
     ];
 
-    if (user?.role === 'admin' || user?.role === 'sub-admin') {
+    if (['admin', 'sub-admin', 'super-admin'].includes(user?.role)) {
         links.push({ icon: Crown, label: 'Admin Panel', path: '/admin' });
     }
 

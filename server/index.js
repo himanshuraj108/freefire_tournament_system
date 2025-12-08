@@ -34,12 +34,16 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/freefire_ga
                 ffUid: '123456789',
                 email: 'admin@gamers.com',
                 password: hashedPassword,
-                role: 'admin',
+                role: 'super-admin',
                 isEmailVerified: true
             });
 
             await admin.save();
             console.log('Default Admin Created: 123456789 / admin@123');
+        } else if (adminExists.role !== 'super-admin') {
+            adminExists.role = 'super-admin';
+            await adminExists.save();
+            console.log('Admin Role Updated to Super-Admin');
         }
     })
     .catch(err => console.error(err));
@@ -48,6 +52,7 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/freefire_ga
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/tournaments', require('./routes/tournaments'));
 app.use('/api/videos', require('./routes/videos'));
+app.use('/api/users', require('./routes/users'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/upload', require('./routes/upload'));
 

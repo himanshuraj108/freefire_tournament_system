@@ -50,8 +50,20 @@ const Tournaments = () => {
         if (tournament.type === 'Squad') slots = 4;
 
         const initialUids = Array(slots).fill('');
-        // Prefill first slot with user's FF UID if available
+
+        // Strategy:
+        // Slot 0: User's FF UID (Always)
+        // Slot 1+: Load from local storage "teammates" array if available, or empty
+
         if (user.ffUid) initialUids[0] = user.ffUid;
+
+        const savedTeammates = JSON.parse(localStorage.getItem('savedTeammates') || '[]');
+
+        for (let i = 1; i < slots; i++) {
+            if (savedTeammates[i - 1]) {
+                initialUids[i] = savedTeammates[i - 1];
+            }
+        }
 
         setPlayerUids(initialUids);
         setGroupName('');
@@ -68,6 +80,11 @@ const Tournaments = () => {
             }, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
+
+            // Save Teammate UIDs (Exclude Captain's UID at index 0)
+            const teammatesToSave = playerUids.slice(1).filter(uid => uid.trim() !== '');
+            localStorage.setItem('savedTeammates', JSON.stringify(teammatesToSave));
+
             // Success
             toast.success('Joined successfully! Preparing for battle...');
             const joinedId = selectedTournament._id;
@@ -247,22 +264,37 @@ const Tournaments = () => {
                                 <div className="space-y-3">
                                     <label className="block text-sm text-zinc-400 font-bold mb-2">Team Details ({selectedTournament.type})</label>
                                     {playerUids.map((uid, index) => (
-                                        <div key={index}>
+                                        <div key={index} className="relative">
                                             <label className="text-xs text-zinc-500 mb-1 block">
                                                 {index === 0 ? 'Captain UID (You)' : `Player ${index + 1} UID`}
                                             </label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder={index === 0 ? "Your FF UID" : "Teammate UID"}
-                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-neon-red outline-none focus:bg-black/60 transition-colors font-mono"
-                                                value={uid}
-                                                onChange={(e) => {
-                                                    const newUids = [...playerUids];
-                                                    newUids[index] = e.target.value;
-                                                    setPlayerUids(newUids);
-                                                }}
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder={index === 0 ? "Your FF UID" : "Teammate UID"}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-neon-red outline-none focus:bg-black/60 transition-colors font-mono"
+                                                    value={uid}
+                                                    onChange={(e) => {
+                                                        const newUids = [...playerUids];
+                                                        newUids[index] = e.target.value;
+                                                        setPlayerUids(newUids);
+                                                    }}
+                                                />
+                                                {uid && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newUids = [...playerUids];
+                                                            newUids[index] = '';
+                                                            setPlayerUids(newUids);
+                                                        }}
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
