@@ -172,7 +172,7 @@ const Videos = () => {
                         {user?.role === 'super-admin' && <p className="text-sm mt-2 text-zinc-600">Click "Add Video" to get started.</p>}
                     </div>
                 )}
-                )}
+
                 {videos.filter(v => v && v._id).map((v) => {
                     const isExpanded = selectedVideo?._id === v._id;
                     return (
