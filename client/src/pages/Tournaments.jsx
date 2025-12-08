@@ -24,8 +24,8 @@ const Tournaments = () => {
             setLoading(true);
             try {
                 const res = await axios.get('http://localhost:5000/api/tournaments');
-                // Filter for Active Tournaments
-                const active = res.data.filter(t => ['Open', 'Ongoing', 'ResultsPending'].includes(t.status));
+                // Filter for Active Tournaments (Includes Completed until Closed)
+                const active = res.data.filter(t => ['Open', 'Ongoing', 'ResultsPending', 'Completed'].includes(t.status));
                 setTournaments(active);
             } catch (err) {
                 console.error(err);
@@ -159,12 +159,22 @@ const Tournaments = () => {
                         {/* Buttons Footer */}
                         <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-3">
                             {t.status === 'Completed' ? (
-                                <button
-                                    onClick={() => setWinnerModal(t)}
-                                    className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-amber-500/10 flex items-center justify-center gap-2"
-                                >
-                                    <Trophy size={18} /> See Winners
-                                </button>
+                                <div className="w-full flex gap-2">
+                                    {(user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id)) && (
+                                        <button
+                                            onClick={() => navigate(`/tournament/${t._id}`)}
+                                            className="w-1/2 bg-neon-blue/10 hover:bg-neon-blue/20 text-neon-blue border border-neon-blue/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-neon-blue/10 flex items-center justify-center gap-2"
+                                        >
+                                            <Clock size={16} /> Enter Room
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => setWinnerModal(t)}
+                                        className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-amber-500/10 flex items-center justify-center gap-2"
+                                    >
+                                        <Trophy size={18} /> See Winners
+                                    </button>
+                                </div>
                             ) : (
                                 <>
                                     <div className="text-left">
@@ -315,7 +325,7 @@ const Tournaments = () => {
                             {/* Winners List */}
                             <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
                                 {winnerModal.winners && winnerModal.winners.length > 0 ? (
-                                    winnerModal.winners.map((winner, index) => (
+                                    [...winnerModal.winners].sort((a, b) => a.position - b.position).map((winner, index) => (
                                         <div
                                             key={index}
                                             className={`flex items-center gap-4 p-4 rounded-xl border ${index === 0 ? 'bg-amber-500/10 border-amber-500/40' :

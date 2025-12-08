@@ -3,6 +3,8 @@ import axios from 'axios';
 import { Trophy, Users, Clock, History, X } from 'lucide-react'; // Changed CreditCard to History
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { PlayCircle } from 'lucide-react';
 
 const AllTournaments = () => {
     const [tournaments, setTournaments] = useState([]);
@@ -11,14 +13,15 @@ const AllTournaments = () => {
     const [error, setError] = useState('');
 
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchTournaments = async () => {
             setLoading(true);
             try {
                 const res = await axios.get('http://localhost:5000/api/tournaments');
-                // Filter for Archive (Past) Tournaments
-                const past = res.data.filter(t => ['Completed', 'Closed'].includes(t.status));
+                // Filter for Archive (Past) Tournaments - ONLY Closed
+                const past = res.data.filter(t => t.status === 'Closed');
                 setTournaments(past);
             } catch (err) {
                 console.error(err);
@@ -96,8 +99,17 @@ const AllTournaments = () => {
                             </div>
                         </div>
 
-                        {/* Footer (Only See Winners) */}
-                        <div className="pt-4 border-t border-white/10">
+                        {/* Footer (Only See Winners + Enter if Joined) */}
+                        <div className="pt-4 border-t border-white/10 flex flex-col gap-2">
+                            {/* Check if user joined this closed tournament */}
+                            {(user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id)) && (
+                                <button
+                                    onClick={() => navigate(`/tournament/${t._id}`)}
+                                    className="w-full bg-neon-blue/10 hover:bg-neon-blue/20 text-neon-blue border border-neon-blue/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-neon-blue/10 flex items-center justify-center gap-2"
+                                >
+                                    <PlayCircle size={18} /> Enter Room (History)
+                                </button>
+                            )}
                             <button
                                 onClick={() => setWinnerModal(t)}
                                 className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-amber-500/10 flex items-center justify-center gap-2"
@@ -138,7 +150,7 @@ const AllTournaments = () => {
                             {/* Winners List */}
                             <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
                                 {winnerModal.winners && winnerModal.winners.length > 0 ? (
-                                    winnerModal.winners.map((winner, index) => (
+                                    [...winnerModal.winners].sort((a, b) => a.position - b.position).map((winner, index) => (
                                         <div
                                             key={index}
                                             className={`flex items-center gap-4 p-4 rounded-xl border ${index === 0 ? 'bg-amber-500/10 border-amber-500/40' :

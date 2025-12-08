@@ -110,40 +110,64 @@ const TournamentRoom = () => {
                         <Users className="text-neon-blue" /> Participants ({tournament.participants.length}/{tournament.maxPlayers})
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {tournament.participants.map((p, i) => (
-                            <div key={i} className="bg-black/40 p-3 rounded-lg flex items-start gap-3 border border-white/5 hover:bg-white/5 transition-colors group">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center font-bold text-sm border border-white/10 shrink-0">
-                                    {p.user.name[0]}
-                                </div>
-                                <div className="overflow-hidden w-full">
-                                    {p.groupName ? (
-                                        <div className="flex flex-col">
-                                            <span className="text-neon-blue font-black truncate text-sm">{p.groupName}</span>
-                                            <span className="text-zinc-400 text-xs truncate">C: {p.user.name}</span>
-                                        </div>
-                                    ) : (
-                                        <p className="text-white font-bold truncate text-sm">{p.user.name}</p>
-                                    )}
+                        {[...tournament.participants]
+                            .sort((a, b) => {
+                                // Helper to loop up rank
+                                const getRank = (p) => {
+                                    const w = tournament.winners?.find(w => (w.user === p.user._id) || (p.groupName && w.groupName === p.groupName));
+                                    return w ? parseInt(w.position) : 9999;
+                                };
+                                return getRank(a) - getRank(b);
+                            })
+                            .map((p, i) => {
+                                // Winner Check Logic
+                                const winnerInfo = tournament.winners?.find(w =>
+                                    (w.user === p.user._id) || (p.groupName && w.groupName === p.groupName)
+                                );
 
-                                    {p.playerUids && p.playerUids.length > 0 ? (
-                                        <div className="mt-1 space-y-1">
-                                            {p.playerUids.map((uid, idx) => (
-                                                <div key={idx} className="flex justify-between text-xs font-mono">
-                                                    <span className={idx === 0 ? "text-neon-blue font-bold" : "text-zinc-500"}>
-                                                        {idx === 0 ? "C" : `#${idx + 1}`}
-                                                    </span>
-                                                    <span className="text-zinc-300">{uid}</span>
-                                                </div>
-                                            ))}
+                                return (
+                                    <div key={i} className={`relative p-3 rounded-lg flex items-start gap-3 border transition-all group ${winnerInfo ? 'bg-amber-500/10 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 'bg-black/40 border-white/5 hover:bg-white/5'}`}>
+                                        {/* Winner Badge */}
+                                        {winnerInfo && (
+                                            <div className="absolute -top-3 -right-2 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/20 flex items-center gap-1">
+                                                <span>#{winnerInfo.position}</span>
+                                                <span>🏆 {winnerInfo.prize}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center font-bold text-sm border border-white/10 shrink-0">
+                                            {p.user.name[0]}
                                         </div>
-                                    ) : (
-                                        <p className="text-xs text-zinc-500 font-mono flex items-center gap-1 mt-1">
-                                            UID: <span className="text-neon-blue">{p.user.ffUid}</span>
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                                        <div className="overflow-hidden w-full">
+                                            {p.groupName ? (
+                                                <div className="flex flex-col">
+                                                    <span className={`font-black truncate text-sm ${winnerInfo ? 'text-amber-400' : 'text-neon-blue'}`}>{p.groupName}</span>
+                                                    <span className="text-zinc-400 text-xs truncate">C: {p.user.name}</span>
+                                                </div>
+                                            ) : (
+                                                <p className={`font-bold truncate text-sm ${winnerInfo ? 'text-amber-400' : 'text-white'}`}>{p.user.name}</p>
+                                            )}
+
+                                            {p.playerUids && p.playerUids.length > 0 ? (
+                                                <div className="mt-1 space-y-1">
+                                                    {p.playerUids.map((uid, idx) => (
+                                                        <div key={idx} className="flex justify-between text-xs font-mono">
+                                                            <span className={idx === 0 ? "text-neon-blue font-bold" : "text-zinc-500"}>
+                                                                {idx === 0 ? "C" : `#${idx + 1}`}
+                                                            </span>
+                                                            <span className="text-zinc-300">{uid}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-zinc-500 font-mono flex items-center gap-1 mt-1">
+                                                    UID: <span className="text-neon-blue">{p.user.ffUid}</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                     </div>
                 </div>
             </div>
@@ -152,7 +176,7 @@ const TournamentRoom = () => {
             <div className="glass-card rounded-2xl flex flex-col h-full overflow-hidden">
                 <div className="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
                     <h3 className="font-bold text-white flex items-center gap-2"><MessageSquare /> Tournament Chat</h3>
-                    {!tournament.chatEnabled && <span className="text-xs text-red-500 font-bold">LOCKED</span>}
+                    {(!tournament.chatEnabled || tournament.status === 'Closed') && <span className="text-xs text-red-500 font-bold">LOCKED</span>}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
@@ -188,7 +212,7 @@ const TournamentRoom = () => {
                 </div>
 
                 {/* Input Area */}
-                {(tournament.chatEnabled || isAdmin) ? (
+                {((tournament.chatEnabled && tournament.status !== 'Closed') || isAdmin) ? (
                     <form onSubmit={handleSendMessage} className="p-4 bg-black/20 border-t border-white/10">
                         <div className="relative">
                             <input
@@ -204,8 +228,8 @@ const TournamentRoom = () => {
                         </div>
                     </form>
                 ) : (
-                    <div className="p-4 text-center text-zinc-500 bg-black/20 border-t border-white/10 text-sm">
-                        Chat is disabled by Admin
+                    <div className="p-4 text-center text-zinc-500 bg-black/20 border-t border-white/10 text-sm font-mono">
+                        {tournament.status === 'Closed' ? 'Tournament Closed • Chat Disabled' : 'Chat is disabled by Admin'}
                     </div>
                 )}
             </div>
