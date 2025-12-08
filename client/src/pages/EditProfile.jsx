@@ -232,6 +232,74 @@ const EditProfile = () => {
                         </button>
                     </motion.form >
                 </section >
+
+                {/* Divider */}
+                <div className="my-12 h-px bg-white/10" />
+
+                {/* Security Section */}
+                <section>
+                    <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                        <User className="text-neon-red" /> Security & Danger Zone
+                    </h2>
+
+                    <div className="space-y-8">
+                        {/* Change Password */}
+                        <div className="bg-black/20 p-6 rounded-2xl border border-white/5">
+                            <h3 className="text-lg font-bold text-white mb-4">Change Password</h3>
+                            <form onSubmit={async (e) => {
+                                e.preventDefault();
+                                const current = e.target.current.value;
+                                const newPass = e.target.new.value;
+                                if (!current || !newPass) return alert('Fill all fields');
+                                setLoading(true);
+                                try {
+                                    await axios.put(`${import.meta.env.VITE_API_URL}/auth/change-password`,
+                                        { currentPassword: current, newPassword: newPass },
+                                        { headers: { 'x-auth-token': localStorage.getItem('token') } } // Redundant if interceptor exists but safe
+                                    );
+                                    alert('Password Changed!');
+                                    e.target.reset();
+                                } catch (err) {
+                                    alert(err.response?.data?.msg || 'Failed');
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }} className="space-y-4">
+                                <input name="current" type="password" placeholder="Current Password" required className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-neon-red outline-none" />
+                                <input name="new" type="password" placeholder="New Password" required className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-neon-red outline-none" />
+                                <button type="submit" className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors">
+                                    Update Password
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Delete Account */}
+                        <div className="bg-red-500/5 p-6 rounded-2xl border border-red-500/10">
+                            <h3 className="text-lg font-bold text-red-500 mb-2">Delete Account</h3>
+                            <p className="text-sm text-zinc-400 mb-4">Once you delete your account, there is no going back. Please be certain.</p>
+                            <button
+                                onClick={async () => {
+                                    if (window.confirm('Are you absolutely sure? This action cannot be undone.')) {
+                                        const confirmText = prompt('Type "DELETE" to confirm:');
+                                        if (confirmText === 'DELETE') {
+                                            try {
+                                                await axios.delete(`${import.meta.env.VITE_API_URL}/auth/delete-account`);
+                                                // Logout logic
+                                                localStorage.removeItem('token');
+                                                window.location.href = '/login';
+                                            } catch (err) {
+                                                alert(err.response?.data?.msg || 'Delete Failed');
+                                            }
+                                        }
+                                    }
+                                }}
+                                className="w-full py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl font-bold transition-all border border-red-500/20 hover:border-red-500"
+                            >
+                                Delete My Account
+                            </button>
+                        </div>
+                    </div>
+                </section>
             </div >
         </div >
     );

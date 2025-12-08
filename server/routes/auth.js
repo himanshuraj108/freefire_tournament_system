@@ -275,4 +275,47 @@ router.post('/verify-email-confirm', auth, async (req, res) => {
     }
 });
 
+// @route   PUT api/auth/change-password
+// @desc    Change current user password
+// @access  Private
+router.put('/change-password', auth, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) return res.status(400).json({ msg: 'Incorrect current password' });
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        res.json({ msg: 'Password updated successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   DELETE api/auth/delete-account
+// @desc    Delete current user account
+// @access  Private
+router.delete('/delete-account', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        if (user.role === 'super-admin') {
+            return res.status(403).json({ msg: 'Super Admin account cannot be deleted via API' });
+        }
+
+        await user.deleteOne();
+        res.json({ msg: 'Account deleted successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;
