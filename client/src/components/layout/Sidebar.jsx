@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Home, Trophy, Video, Users, Crown, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-const Sidebar = ({ isOpen }) => {
+const Sidebar = ({ isOpen, closeSidebar }) => {
     const location = useLocation();
     const { user } = useAuth();
 
@@ -32,6 +32,7 @@ const Sidebar = ({ isOpen }) => {
                         <Link
                             key={link.path}
                             to={link.path}
+                            onClick={closeSidebar}
                             className={`flex items-center gap-4 px-6 py-4 transition-all relative overflow-hidden ${isActive ? 'text-neon-red' : 'text-zinc-400 hover:text-white hover:bg-white/5'
                                 }`}
                         >
@@ -47,7 +48,11 @@ const Sidebar = ({ isOpen }) => {
                 })}
 
                 <div className="mt-auto px-6 py-4">
-                    <Link to="/settings" className="flex items-center gap-4 text-zinc-500 hover:text-white transition-colors">
+                    <Link
+                        to="/settings"
+                        onClick={closeSidebar}
+                        className="flex items-center gap-4 text-zinc-500 hover:text-white transition-colors"
+                    >
                         <Settings className="w-6 h-6 min-w-[24px]" />
                         <span className="font-medium whitespace-nowrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300">Settings</span>
                     </Link>
