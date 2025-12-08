@@ -172,13 +172,13 @@ const Videos = () => {
                         {user?.role === 'super-admin' && <p className="text-sm mt-2 text-zinc-600">Click "Add Video" to get started.</p>}
                     </div>
                 )}
-                {videos.map((v) => {
+                )}
+                {videos.filter(v => v && v._id).map((v) => {
                     const isExpanded = selectedVideo?._id === v._id;
                     return (
                         <motion.div
                             key={v._id}
-                            layout
-                            className={`glass - card rounded - xl overflow - hidden group ${isExpanded ? 'fixed inset-0 z-50 m-4 md:m-8 flex flex-col md:flex-row bg-black/95 border-neon-red/50 shadow-2xl' : 'relative'
+                            className={`glass-card rounded-xl overflow-hidden group ${isExpanded ? 'fixed inset-0 z-50 m-4 md:m-8 flex flex-col md:flex-row bg-black/95 border-neon-red/50 shadow-2xl' : 'relative'
                                 }`}
                             initial={false}
                             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -303,11 +303,11 @@ const Videos = () => {
 
                                                 {/* Comment List */}
                                                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                                                    {v.comments?.map((c, i) => (
+                                                    {(v.comments || []).filter(c => c).map((c, i) => (
                                                         <div key={i} className="text-sm bg-white/5 p-3 rounded-lg">
                                                             <div className="flex justify-between items-start mb-1">
-                                                                <span className="font-bold text-neon-blue">{c.name}</span>
-                                                                <span className="text-[10px] text-zinc-500">{new Date(c.date).toLocaleDateString()}</span>
+                                                                <span className="font-bold text-neon-blue">{c.name || 'User'}</span>
+                                                                <span className="text-[10px] text-zinc-500">{c.date ? new Date(c.date).toLocaleDateString() : ''}</span>
                                                             </div>
                                                             <p className="text-zinc-300">{c.text}</p>
                                                         </div>
