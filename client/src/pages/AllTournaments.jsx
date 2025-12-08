@@ -29,8 +29,8 @@ const AllTournaments = () => {
             setLoading(true);
             try {
                 const [tournamentsRes, videosRes] = await Promise.all([
-                    axios.get('http://localhost:5000/api/tournaments'),
-                    axios.get('http://localhost:5000/api/videos')
+                    axios.get(`${import.meta.env.VITE_API_URL}/tournaments`),
+                    axios.get(`${import.meta.env.VITE_API_URL}/videos`)
                 ]);
 
                 const past = tournamentsRes.data.filter(t => t.status === 'Closed');
@@ -82,8 +82,8 @@ const AllTournaments = () => {
                         >
                             {/* Status Badge */}
                             <div className="absolute top-4 right-4 z-10">
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${t.status === 'Completed' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/20' :
-                                    'bg-zinc-500/20 text-zinc-400 border border-zinc-500/20'
+                                <span className={`px - 3 py - 1 rounded - full text - xs font - bold uppercase tracking - wider ${t.status === 'Completed' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/20' :
+                                        'bg-zinc-500/20 text-zinc-400 border border-zinc-500/20'
                                     }`}>
                                     {t.status}
                                 </span>
@@ -122,7 +122,7 @@ const AllTournaments = () => {
                                 {/* Enter Room (History) - Only if joined */}
                                 {(user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id)) && (
                                     <button
-                                        onClick={() => navigate(`/tournament/${t._id}`)}
+                                        onClick={() => navigate(`/ tournament / ${t._id}`)}
                                         className="w-full bg-neon-blue/10 hover:bg-neon-blue/20 text-neon-blue border border-neon-blue/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-neon-blue/10 flex items-center justify-center gap-2"
                                     >
                                         <PlayCircle size={18} /> Enter Room (History)
@@ -183,18 +183,18 @@ const AllTournaments = () => {
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
                                 />
-                            </div>
+                            </div >
                             <div className="p-4">
                                 <h2 className="text-2xl font-bold text-white mb-2">{viewVideo.title}</h2>
                                 <p className="text-zinc-400">{viewVideo.description}</p>
                             </div>
-                        </motion.div>
-                    </motion.div>
+                        </motion.div >
+                    </motion.div >
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
 
             {/* WINNER POPUP MODAL */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {winnerModal && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -272,8 +272,8 @@ const AllTournaments = () => {
                         </motion.div>
                     </motion.div>
                 )}
-            </AnimatePresence>
-        </div>
+            </AnimatePresence >
+        </div >
     );
 };
 

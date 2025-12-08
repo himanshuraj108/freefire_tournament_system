@@ -54,10 +54,15 @@ router.post('/register', async (req, res) => {
 // @desc    Authenticate user & get token
 // @access  Public
 router.post('/login', async (req, res) => {
-    const { ffUid, password } = req.body;
+    const { identifier, ffUid, password } = req.body;
+
+    // Backward compatibility for calls sending ffUid
+    const loginId = identifier || ffUid;
 
     try {
-        let user = await User.findOne({ ffUid });
+        let user = await User.findOne({
+            $or: [{ ffUid: loginId }, { email: loginId }]
+        });
         if (!user) {
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }

@@ -28,8 +28,8 @@ const Tournaments = () => {
             setLoading(true);
             try {
                 const [tournamentsRes, videosRes] = await Promise.all([
-                    axios.get('http://localhost:5000/api/tournaments'),
-                    axios.get('http://localhost:5000/api/videos')
+                    axios.get(`${import.meta.env.VITE_API_URL}/tournaments`),
+                    axios.get(`${import.meta.env.VITE_API_URL}/videos`)
                 ]);
 
                 // Filter for Active Tournaments (Includes Completed until Closed)
@@ -82,7 +82,7 @@ const Tournaments = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await axios.post(`http://localhost:5000/api/tournaments/${selectedTournament._id}/join`, {
+            await axios.post(`${import.meta.env.VITE_API_URL}/tournaments/${selectedTournament._id}/join`, {
                 upiId,
                 playerUids,
                 groupName

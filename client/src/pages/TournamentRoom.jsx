@@ -25,7 +25,7 @@ const TournamentRoom = () => {
 
     const fetchTournament = async () => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/tournaments/${id}`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/tournaments/${id}`);
             setTournament(res.data);
         } catch (err) {
             console.error(err);
@@ -36,7 +36,7 @@ const TournamentRoom = () => {
         e.preventDefault();
         if (!message.trim()) return;
         try {
-            await axios.post(`http://localhost:5000/api/tournaments/${id}/chat`, { text: message });
+            await axios.post(`${import.meta.env.VITE_API_URL}/tournaments/${id}/chat`, { text: message });
             setMessage('');
             fetchTournament();
         } catch (err) {
@@ -47,7 +47,7 @@ const TournamentRoom = () => {
     const toggleStatus = async () => {
         try {
             const newStatus = tournament.status === 'Open' ? 'Ongoing' : 'Completed';
-            await axios.put(`http://localhost:5000/api/tournaments/${id}/status`, { status: newStatus });
+            await axios.put(`${import.meta.env.VITE_API_URL}/tournaments/${id}/status`, { status: newStatus });
             fetchTournament();
         } catch (err) {
             alert('Error updating status');
@@ -56,7 +56,7 @@ const TournamentRoom = () => {
 
     const toggleChat = async () => {
         try {
-            await axios.put(`http://localhost:5000/api/tournaments/${id}/chat-toggle`);
+            await axios.put(`${import.meta.env.VITE_API_URL}/tournaments/${id}/chat-toggle`);
             fetchTournament();
         } catch (err) {
             alert('Error toggling chat');

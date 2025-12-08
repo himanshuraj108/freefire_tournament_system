@@ -29,7 +29,7 @@ const Videos = () => {
         e.stopPropagation();
         if (!user) return alert('Please login to like');
         try {
-            const res = await axios.put(`http://localhost:5000/api/videos/${vid._id}/like`);
+            const res = await axios.put(`${import.meta.env.VITE_API_URL}/videos/${vid._id}/like`);
             setVideos(videos.map(v => v._id === vid._id ? { ...v, likes: res.data.likes, dislikes: res.data.dislikes } : v));
             if (activeCommentVideo && activeCommentVideo._id === vid._id) {
                 setActiveCommentVideo(prev => ({ ...prev, likes: res.data.likes, dislikes: res.data.dislikes }));
@@ -41,7 +41,7 @@ const Videos = () => {
         e.stopPropagation();
         if (!user) return alert('Please login to dislike');
         try {
-            const res = await axios.put(`http://localhost:5000/api/videos/${vid._id}/dislike`);
+            const res = await axios.put(`${import.meta.env.VITE_API_URL}/videos/${vid._id}/dislike`);
             setVideos(videos.map(v => v._id === vid._id ? { ...v, likes: res.data.likes, dislikes: res.data.dislikes } : v));
             if (activeCommentVideo && activeCommentVideo._id === vid._id) {
                 setActiveCommentVideo(prev => ({ ...prev, likes: res.data.likes, dislikes: res.data.dislikes }));
@@ -53,12 +53,13 @@ const Videos = () => {
         e.preventDefault();
         if (!user) return alert('Please login to comment');
         try {
-            const res = await axios.post(`http://localhost:5000/api/videos/${vid._id}/comment`, { text: commentText });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/videos/${vid._id}/comment`, { text: commentText });
             const updatedComments = res.data;
             setVideos(videos.map(v => v._id === vid._id ? { ...v, comments: updatedComments } : v));
             if (activeCommentVideo && activeCommentVideo._id === vid._id) {
                 setActiveCommentVideo(prev => ({ ...prev, comments: updatedComments }));
             }
+
             setCommentText('');
         } catch (err) { alert('Error posting comment'); }
     };
@@ -67,7 +68,7 @@ const Videos = () => {
         e.stopPropagation();
         if (!window.confirm('Are you sure you want to delete this video?')) return;
         try {
-            await axios.delete(`http://localhost:5000/api/videos/${vid._id}`);
+            await axios.delete(`${import.meta.env.VITE_API_URL}/videos/${vid._id}`);
             setVideos(videos.filter(v => v._id !== vid._id));
             if (selectedVideo?._id === vid._id) setSelectedVideo(null);
             alert('Video Deleted');
@@ -76,7 +77,7 @@ const Videos = () => {
 
     const handleCommentLike = async (vid, commentId) => {
         try {
-            const res = await axios.put(`http://localhost:5000/api/videos/${vid._id}/comment/${commentId}/like`);
+            const res = await axios.put(`${import.meta.env.VITE_API_URL}/videos/${vid._id}/comment/${commentId}/like`);
             const updatedComments = res.data;
             setVideos(videos.map(v => v._id === vid._id ? { ...v, comments: updatedComments } : v));
             if (activeCommentVideo && activeCommentVideo._id === vid._id) {
@@ -87,7 +88,7 @@ const Videos = () => {
 
     const handleCommentDislike = async (vid, commentId) => {
         try {
-            const res = await axios.put(`http://localhost:5000/api/videos/${vid._id}/comment/${commentId}/dislike`);
+            const res = await axios.put(`${import.meta.env.VITE_API_URL}/videos/${vid._id}/comment/${commentId}/dislike`);
             const updatedComments = res.data;
             setVideos(videos.map(v => v._id === vid._id ? { ...v, comments: updatedComments } : v));
             if (activeCommentVideo && activeCommentVideo._id === vid._id) {
@@ -96,11 +97,10 @@ const Videos = () => {
         } catch (err) { console.error(err); }
     };
 
-    // ... INSIDE RENDER (lines 202+)
     const handleReply = async (e, vid, commentId) => {
         e.preventDefault();
         try {
-            const res = await axios.post(`http://localhost:5000/api/videos/${vid._id}/comment/${commentId}/reply`, { text: replyText });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/videos/${vid._id}/comment/${commentId}/reply`, { text: replyText });
             const updatedComments = res.data;
             setVideos(videos.map(v => v._id === vid._id ? { ...v, comments: updatedComments } : v));
             if (activeCommentVideo && activeCommentVideo._id === vid._id) {
@@ -115,7 +115,7 @@ const Videos = () => {
     // Helper to fetch videos
     const fetchVideos = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/videos');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/videos`);
             setVideos(res.data);
         } catch (err) {
             console.error(err);
@@ -140,7 +140,7 @@ const Videos = () => {
                 videoId = videoData.url.split('youtu.be/')[1].split('?')[0];
             }
 
-            await axios.post('http://localhost:5000/api/videos', {
+            await axios.post(`${import.meta.env.VITE_API_URL}/videos`, {
                 title: videoData.title,
                 youtubeUrl: videoId
             });
@@ -171,7 +171,7 @@ const Videos = () => {
                         <motion.div
                             key={v._id}
                             layout
-                            className={`glass-card rounded-xl overflow-hidden group ${isExpanded ? 'fixed inset-0 z-50 m-4 md:m-8 flex flex-col md:flex-row bg-black/95 border-neon-red/50 shadow-2xl' : 'relative'
+                            className={`glass - card rounded - xl overflow - hidden group ${isExpanded ? 'fixed inset-0 z-50 m-4 md:m-8 flex flex-col md:flex-row bg-black/95 border-neon-red/50 shadow-2xl' : 'relative'
                                 }`}
                             initial={false}
                             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -200,18 +200,20 @@ const Videos = () => {
                                     </button>
                                 )}
                                 {/* Close button for expanded view */}
-                                {isExpanded && (
-                                    <button
-                                        onClick={() => setSelectedVideo(null)}
-                                        className="absolute top-4 right-4 md:left-4 md:right-auto p-2 bg-black/50 text-white rounded-full hover:bg-red-600 transition-colors z-20"
-                                    >
-                                        <X />
-                                    </button>
-                                )}
-                            </div>
+                                {
+                                    isExpanded && (
+                                        <button
+                                            onClick={() => setSelectedVideo(null)}
+                                            className="absolute top-4 right-4 md:left-4 md:right-auto p-2 bg-black/50 text-white rounded-full hover:bg-red-600 transition-colors z-20"
+                                        >
+                                            <X />
+                                        </button>
+                                    )
+                                }
+                            </div >
 
                             {/* Info & Interactions (Visible when expanded or small info in grid) */}
-                            <div className={`p-4 flex flex-col ${isExpanded ? 'w-full md:w-1/4 bg-zinc-900/50 border-l border-white/10 overflow-y-auto' : ''}`}>
+                            < div className={`p-4 flex flex-col ${isExpanded ? 'w-full md:w-1/4 bg-zinc-900/50 border-l border-white/10 overflow-y-auto' : ''}`}>
                                 <div className="flex justify-between items-start mb-2">
                                     <h3 className={`font-bold text-white ${isExpanded ? 'text-xl' : 'line-clamp-2'}`}>{v.title}</h3>
                                     {/* Delete Button for Admin (Visible in both grid and expanded) */}
@@ -231,84 +233,88 @@ const Videos = () => {
                                 <p className="text-xs text-zinc-500 mb-4">Added {new Date(v.createdAt).toLocaleDateString()}</p>
 
                                 {/* Small Box Stats (Visible only when NOT expanded) */}
-                                {!isExpanded && (
-                                    <div className="flex items-center gap-4 text-xs text-zinc-400 mt-auto pt-2 border-t border-white/5">
-                                        <button
-                                            onClick={(e) => handleLike(e, v)}
-                                            className={`flex items-center gap-1 hover:text-white transition-colors ${v.likes?.includes(user?.id) ? 'text-neon-blue' : ''}`}
-                                        >
-                                            <ThumbsUp size={12} /> {v.likes?.length || 0}
-                                        </button>
-                                        <button
-                                            onClick={(e) => handleDislike(e, v)}
-                                            className={`flex items-center gap-1 hover:text-white transition-colors ${v.dislikes?.includes(user?.id) ? 'text-red-500' : ''}`}
-                                        >
-                                            <ThumbsDown size={12} /> {v.dislikes?.length || 0}
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveCommentVideo(v);
-                                            }}
-                                            className="flex items-center gap-1 hover:text-white transition-colors"
-                                        >
-                                            <MessageSquare size={12} /> {v.comments?.length || 0}
-                                        </button>
-                                    </div>
-                                )}
-
-                                {isExpanded && (
-                                    <div className="space-y-6 flex-1">
-                                        {/* Actions */}
-                                        <div className="flex gap-4">
-                                            <button onClick={(e) => handleLike(e, v)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${v.likes?.includes(user?.id) ? 'bg-neon-blue text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}>
-                                                <ThumbsUp size={18} /> {v.likes?.length || 0}
+                                {
+                                    !isExpanded && (
+                                        <div className="flex items-center gap-4 text-xs text-zinc-400 mt-auto pt-2 border-t border-white/5">
+                                            <button
+                                                onClick={(e) => handleLike(e, v)}
+                                                className={`flex items-center gap-1 hover:text-white transition-colors ${v.likes?.includes(user?.id) ? 'text-neon-blue' : ''}`}
+                                            >
+                                                <ThumbsUp size={12} /> {v.likes?.length || 0}
                                             </button>
-                                            <button onClick={(e) => handleDislike(e, v)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${v.dislikes?.includes(user?.id) ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}>
-                                                <ThumbsDown size={18} /> {v.dislikes?.length || 0}
+                                            <button
+                                                onClick={(e) => handleDislike(e, v)}
+                                                className={`flex items-center gap-1 hover:text-white transition-colors ${v.dislikes?.includes(user?.id) ? 'text-red-500' : ''}`}
+                                            >
+                                                <ThumbsDown size={12} /> {v.dislikes?.length || 0}
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveCommentVideo(v);
+                                                }}
+                                                className="flex items-center gap-1 hover:text-white transition-colors"
+                                            >
+                                                <MessageSquare size={12} /> {v.comments?.length || 0}
                                             </button>
                                         </div>
+                                    )
+                                }
 
-                                        {/* Comments Section */}
-                                        <div className="space-y-4">
-                                            <h4 className="font-bold text-white flex items-center gap-2">
-                                                <MessageSquare size={16} /> Comments ({v.comments?.length || 0})
-                                            </h4>
-
-                                            {/* Comment Input */}
-                                            <form onSubmit={(e) => handleComment(e, v)} className="relative">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Add a comment..."
-                                                    className="w-full bg-black/20 border border-white/10 rounded-full pl-4 pr-10 py-2 text-sm text-white focus:border-neon-blue outline-none"
-                                                    value={commentText}
-                                                    onChange={(e) => setCommentText(e.target.value)}
-                                                />
-                                                <button type="submit" className="absolute right-1 top-1 p-1.5 bg-neon-blue text-black rounded-full hover:scale-105">
-                                                    <Send size={12} />
+                                {
+                                    isExpanded && (
+                                        <div className="space-y-6 flex-1">
+                                            {/* Actions */}
+                                            <div className="flex gap-4">
+                                                <button onClick={(e) => handleLike(e, v)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${v.likes?.includes(user?.id) ? 'bg-neon-blue text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}>
+                                                    <ThumbsUp size={18} /> {v.likes?.length || 0}
                                                 </button>
-                                            </form>
+                                                <button onClick={(e) => handleDislike(e, v)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${v.dislikes?.includes(user?.id) ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}>
+                                                    <ThumbsDown size={18} /> {v.dislikes?.length || 0}
+                                                </button>
+                                            </div>
 
-                                            {/* Comment List */}
-                                            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                                                {v.comments?.map((c, i) => (
-                                                    <div key={i} className="text-sm bg-white/5 p-3 rounded-lg">
-                                                        <div className="flex justify-between items-start mb-1">
-                                                            <span className="font-bold text-neon-blue">{c.name}</span>
-                                                            <span className="text-[10px] text-zinc-500">{new Date(c.date).toLocaleDateString()}</span>
+                                            {/* Comments Section */}
+                                            <div className="space-y-4">
+                                                <h4 className="font-bold text-white flex items-center gap-2">
+                                                    <MessageSquare size={16} /> Comments ({v.comments?.length || 0})
+                                                </h4>
+
+                                                {/* Comment Input */}
+                                                <form onSubmit={(e) => handleComment(e, v)} className="relative">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Add a comment..."
+                                                        className="w-full bg-black/20 border border-white/10 rounded-full pl-4 pr-10 py-2 text-sm text-white focus:border-neon-blue outline-none"
+                                                        value={commentText}
+                                                        onChange={(e) => setCommentText(e.target.value)}
+                                                    />
+                                                    <button type="submit" className="absolute right-1 top-1 p-1.5 bg-neon-blue text-black rounded-full hover:scale-105">
+                                                        <Send size={12} />
+                                                    </button>
+                                                </form>
+
+                                                {/* Comment List */}
+                                                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                                                    {v.comments?.map((c, i) => (
+                                                        <div key={i} className="text-sm bg-white/5 p-3 rounded-lg">
+                                                            <div className="flex justify-between items-start mb-1">
+                                                                <span className="font-bold text-neon-blue">{c.name}</span>
+                                                                <span className="text-[10px] text-zinc-500">{new Date(c.date).toLocaleDateString()}</span>
+                                                            </div>
+                                                            <p className="text-zinc-300">{c.text}</p>
                                                         </div>
-                                                        <p className="text-zinc-300">{c.text}</p>
-                                                    </div>
-                                                ))}
-                                                {(!v.comments || v.comments.length === 0) && (
-                                                    <p className="text-zinc-500 text-center italic text-sm">No comments yet</p>
-                                                )}
+                                                    ))}
+                                                    {(!v.comments || v.comments.length === 0) && (
+                                                        <p className="text-zinc-500 text-center italic text-sm">No comments yet</p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        </motion.div>
+                                    )
+                                }
+                            </div >
+                        </motion.div >
                     );
                 })}
                 {/* Advanced Comment Modal */}
@@ -435,9 +441,9 @@ const Videos = () => {
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </div>
+            </div >
             {/* Removed separate AnimatePresence Modal since we handle expansion inline */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {showModal && (
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -480,8 +486,8 @@ const Videos = () => {
                         </motion.div>
                     </motion.div>
                 )}
-            </AnimatePresence>
-        </div>
+            </AnimatePresence >
+        </div >
     );
 };
 

@@ -24,7 +24,7 @@ const EditProfile = () => {
         setLoading(true);
         setMessage(null);
         try {
-            await axios.put('http://localhost:5000/api/users/profile', formData);
+            await axios.put(`${import.meta.env.VITE_API_URL}/users/profile`, formData);
             await loadUser(); // Refresh global user state
             setMessage({ type: 'success', text: 'Profile Updated Successfully!' });
             // Optional: Redirect back to profile after success
@@ -51,7 +51,7 @@ const EditProfile = () => {
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`p-4 rounded-xl mb-6 text-sm font-bold ${message.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}
+                        className={`p - 4 rounded - xl mb - 6 text - sm font - bold ${message.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}
                     >
                         {message.text}
                     </motion.div>
@@ -113,10 +113,10 @@ const EditProfile = () => {
                                             type="button"
                                             onClick={async () => {
                                                 try {
-                                                    await axios.post('http://localhost:5000/api/auth/verify-email-request');
+                                                    await axios.post(`${import.meta.env.VITE_API_URL}/auth/verify-email-request`);
                                                     const code = prompt("Verification OTP sent to your email.\n\nEnter 6-digit code:");
                                                     if (code) {
-                                                        await axios.post('http://localhost:5000/api/auth/verify-email-confirm', { otp: code });
+                                                        await axios.post(`${import.meta.env.VITE_API_URL}/auth/verify-email-confirm`, { otp: code });
                                                         alert("Email Verified!");
                                                         loadUser();
                                                     }
@@ -178,10 +178,11 @@ const EditProfile = () => {
                                                 } finally {
                                                     setLoading(false);
                                                 }
-                                            }}
+                                            }
+                                            }
                                         />
-                                    </label>
-                                </div>
+                                    </label >
+                                </div >
 
                                 <p className="text-sm text-zinc-500 mb-3">Or choose a preset avatar:</p>
                                 <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
@@ -207,7 +208,7 @@ const EditProfile = () => {
                                         </button>
                                     ))}
                                 </div>
-                            </div>
+                            </div >
 
                             <div className="col-span-1 md:col-span-2">
                                 <label className="block text-sm text-zinc-400 mb-2">Bio / About Me</label>
@@ -219,7 +220,7 @@ const EditProfile = () => {
                                     onChange={e => setFormData({ ...formData, bio: e.target.value })}
                                 />
                             </div>
-                        </div>
+                        </div >
 
                         <button
                             type="submit"
@@ -229,10 +230,10 @@ const EditProfile = () => {
                             {loading ? <Loader className="animate-spin" /> : <Save size={18} />}
                             Save Profile Changes
                         </button>
-                    </motion.form>
-                </section>
-            </div>
-        </div>
+                    </motion.form >
+                </section >
+            </div >
+        </div >
     );
 };
 

@@ -104,45 +104,6 @@ const AdminDashboard = () => {
     const [banModal, setBanModal] = useState({ show: false, user: null });
     const [banData, setBanData] = useState({ type: 'temporary', duration: '24' }); // duration in hours
 
-    const fetchUsers = async () => {
-        try {
-            const res = await axios.get('http://localhost:5000/api/users', { headers: { 'x-auth-token': localStorage.getItem('token') } });
-            setUsers(res.data);
-        } catch (err) { console.error('Failed to fetch users', err); }
-    };
-
-    const fetchPendingTournaments = async () => {
-        try {
-            const res = await axios.get('http://localhost:5000/api/tournaments/status/pending', { headers: { 'x-auth-token': localStorage.getItem('token') } });
-            setPendingTournaments(res.data);
-        } catch (err) {
-            console.error('Error fetching pending tournaments', err);
-        }
-    };
-
-    const handleApproveTournament = async (id) => {
-        try {
-            await axios.put(`http://localhost:5000/api/tournaments/${id}/approve`, {}, { headers: { 'x-auth-token': localStorage.getItem('token') } });
-            fetchPendingTournaments(); // Refresh list
-            alert('Tournament Approved!');
-        } catch (err) {
-            console.error(err);
-            alert('Error approving tournament');
-        }
-    };
-
-    const handleRejectTournament = async (id) => {
-        if (!window.confirm('Are you sure you want to REJECT (DELETE) this tournament? This cannot be undone.')) return;
-        try {
-            await axios.delete(`http://localhost:5000/api/tournaments/${id}`, { headers: { 'x-auth-token': localStorage.getItem('token') } });
-            fetchPendingTournaments();
-            alert('Tournament Rejected & Deleted.');
-        } catch (err) {
-            console.error(err);
-            alert('Error rejecting tournament');
-        }
-    };
-
     useEffect(() => {
         if (activeTab === 'tournaments') fetchTournaments();
         if (activeTab === 'videos') fetchVideos();
@@ -153,7 +114,7 @@ const AdminDashboard = () => {
     const handleRequestBan = async (u) => {
         if (!window.confirm(`Request to ban ${u.name}?`)) return;
         try {
-            await axios.put(`http://localhost:5000/api/users/${u._id}/ban`, {
+            await axios.put(`${import.meta.env.VITE_API_URL}/users/${u._id}/ban`, {
                 banStatus: 'temporary' // Default placeholder, Super Admin decides
             }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
             alert('Ban request submitted.');
@@ -167,7 +128,7 @@ const AdminDashboard = () => {
     const handleRejectBan = async (u) => {
         if (!window.confirm(`Reject ban request for ${u.name}?`)) return;
         try {
-            await axios.put(`http://localhost:5000/api/users/${u._id}/ban-manage`, {
+            await axios.put(`${import.meta.env.VITE_API_URL}/users/${u._id}/ban-manage`, {
                 action: 'reject'
             }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
             fetchUsers();
@@ -194,13 +155,13 @@ const AdminDashboard = () => {
             // Wait, if I use /ban, it's consistent.
 
             if (user.role === 'super-admin' && banModal.user.banRequest?.status === 'pending') {
-                await axios.put(`http://localhost:5000/api/users/${banModal.user._id}/ban-manage`, {
+                await axios.put(`${import.meta.env.VITE_API_URL}/users/${banModal.user._id}/ban-manage`, {
                     action: 'approve',
                     banStatus: banData.type,
                     banExpires
                 }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
             } else {
-                await axios.put(`http://localhost:5000/api/users/${banModal.user._id}/ban`, {
+                await axios.put(`${import.meta.env.VITE_API_URL}/users/${banModal.user._id}/ban`, {
                     banStatus: banData.type,
                     banExpires
                 }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
@@ -312,7 +273,7 @@ const AdminDashboard = () => {
             }));
 
             const payload = { ...editFormData, prizeDistribution: distributionArray };
-            await axios.put(`http://localhost:5000/api/tournaments/${selectedTournament._id}`, payload);
+            await axios.put(`${import.meta.env.VITE_API_URL}/tournaments/${selectedTournament._id}`, payload);
             alert('Tournament Details Updated!');
             fetchTournaments();
             setIsEditMode(false);
@@ -325,14 +286,14 @@ const AdminDashboard = () => {
 
     const fetchTournaments = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/tournaments');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/tournaments`);
             setTournaments(res.data);
         } catch (err) { console.error(err); }
     };
 
     const fetchVideos = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/videos');
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/videos`);
             setVideos(res.data);
         } catch (err) { console.error(err); }
     }
@@ -372,7 +333,7 @@ const AdminDashboard = () => {
                 updateData = { status: 'Closed' };
             }
 
-            await axios.patch(`http://localhost:5000/api/tournaments/${selectedTournament._id}/status`, updateData);
+            await axios.patch(`${import.meta.env.VITE_API_URL}/tournaments/${selectedTournament._id}/status`, updateData);
             alert('Status Updated!');
             setManageModal(false);
             fetchTournaments();
@@ -406,7 +367,7 @@ const AdminDashboard = () => {
         });
 
         try {
-            await axios.post(`http://localhost:5000/api/tournaments/${selectedTournament._id}/declare-winners`, { winners: winnersArray });
+            await axios.post(`${import.meta.env.VITE_API_URL}/tournaments/${selectedTournament._id}/declare-winners`, { winners: winnersArray });
             alert('Winners Declared & Tournament Completed!');
             setManageModal(false);
             fetchTournaments();
@@ -434,7 +395,7 @@ const AdminDashboard = () => {
                     prizeDistribution: distributionArray
                 };
 
-                await axios.post('http://localhost:5000/api/tournaments', payload);
+                await axios.post(`${import.meta.env.VITE_API_URL}/tournaments`, payload);
                 setFormData({
                     title: '', type: 'Solo', entryFee: 0, prizePool: '', schedule: '', maxPlayers: 48,
                     startTime: '', endTime: '', totalWinners: 3, prizeDistribution: ['', '', '']
@@ -452,7 +413,7 @@ const AdminDashboard = () => {
                     videoId = videoData.url.split('youtu.be/')[1];
                 }
 
-                await axios.post('http://localhost:5000/api/videos', {
+                await axios.post(`${import.meta.env.VITE_API_URL}/videos`, {
                     title: videoData.title,
                     youtubeUrl: videoId, // Store just the ID
                     description: videoData.description,
@@ -785,7 +746,7 @@ const AdminDashboard = () => {
                                                             onClick={async () => {
                                                                 if (!window.confirm(`Demote ${u.name} to User?`)) return;
                                                                 try {
-                                                                    await axios.put(`http://localhost:5000/api/users/${u._id}/role`, { role: 'user' }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                                    await axios.put(`${import.meta.env.VITE_API_URL}/users/${u._id}/role`, { role: 'user' }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
                                                                     fetchUsers();
                                                                 } catch (err) { alert('Failed to demote'); }
                                                             }}
@@ -798,7 +759,7 @@ const AdminDashboard = () => {
                                                             onClick={async () => {
                                                                 if (!window.confirm(`Promote ${u.name} to Admin?`)) return;
                                                                 try {
-                                                                    await axios.put(`http://localhost:5000/api/users/${u._id}/role`, { role: 'admin' }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+                                                                    await axios.put(`${import.meta.env.VITE_API_URL}/users/${u._id}/role`, { role: 'admin' }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
                                                                     fetchUsers();
                                                                 } catch (err) { alert('Failed to promote'); }
                                                             }}

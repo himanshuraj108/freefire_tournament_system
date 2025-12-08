@@ -6,14 +6,14 @@ import { motion } from 'framer-motion';
 
 const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
-    const [formData, setFormData] = useState({ ffUid: '', password: '' });
+    const [formData, setFormData] = useState({ identifier: '', password: '' });
     const [errors, setErrors] = useState({});
     const { login } = useAuth();
     const navigate = useNavigate();
 
     const validate = () => {
         const newErrors = {};
-        if (!formData.ffUid) newErrors.ffUid = 'FreeFire UID is required';
+        if (!formData.identifier) newErrors.identifier = 'UID or Email is required';
         if (!formData.password) newErrors.password = 'Password is required';
         return newErrors;
     };
@@ -27,7 +27,7 @@ const Login = () => {
         }
 
         try {
-            await login(formData.ffUid, formData.password);
+            await login(formData.identifier, formData.password);
             navigate('/');
         } catch (err) {
             setErrors({ form: 'Login Failed. Check credentials.' });
@@ -58,20 +58,20 @@ const Login = () => {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {errors.form && <div className="text-red-500 text-center font-bold">{errors.form}</div>}
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400 mb-2">FreeFire UID</label>
+                        <label className="block text-sm font-medium text-zinc-400 mb-2">FreeFire UID or Email</label>
                         <div className="relative">
                             <input
                                 type="text"
-                                className={`w-full bg-black/40 border ${errors.ffUid ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white focus:border-neon-red focus:ring-1 focus:ring-neon-red outline-none transition-all pl-10`}
-                                placeholder="123456789"
+                                className={`w-full bg-black/40 border ${errors.identifier ? 'border-red-500' : 'border-white/10'} rounded-xl px-4 py-3 text-white focus:border-neon-red focus:ring-1 focus:ring-neon-red outline-none transition-all pl-10`}
+                                placeholder="UID or Email"
                                 onChange={(e) => {
-                                    setFormData({ ...formData, ffUid: e.target.value });
-                                    if (errors.ffUid) setErrors({ ...errors, ffUid: '' });
+                                    setFormData({ ...formData, identifier: e.target.value });
+                                    if (errors.identifier) setErrors({ ...errors, identifier: '' });
                                 }}
                             />
                             <User className="absolute left-3 top-3.5 text-zinc-500 w-5 h-5" />
                         </div>
-                        {errors.ffUid && <p className="text-red-500 text-xs mt-1">{errors.ffUid}</p>}
+                        {errors.identifier && <p className="text-red-500 text-xs mt-1">{errors.identifier}</p>}
                     </div>
 
                     <div>

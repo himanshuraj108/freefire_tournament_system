@@ -23,23 +23,27 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/freefire_ga
     .then(async () => {
         console.log('MongoDB Connected');
 
-        // Seed Admin
-        const adminExists = await User.findOne({ ffUid: '123456789' });
+        // Seed Admin from ENV
+        const adminUid = process.env.SUPER_ADMIN_UID || '123456789';
+        const adminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@gamers.com';
+        const adminPassword = process.env.SUPER_ADMIN_PASSWORD || 'admin@123';
+
+        const adminExists = await User.findOne({ ffUid: adminUid });
         if (!adminExists) {
             const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash('admin@123', salt);
+            const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
             const admin = new User({
                 name: 'Super Admin',
-                ffUid: '123456789',
-                email: 'admin@gamers.com',
+                ffUid: adminUid,
+                email: adminEmail,
                 password: hashedPassword,
                 role: 'super-admin',
                 isEmailVerified: true
             });
 
             await admin.save();
-            console.log('Default Admin Created: 123456789 / admin@123');
+            console.log(`Default Admin Created: ${adminUid} / ${adminEmail}`);
         } else if (adminExists.role !== 'super-admin') {
             adminExists.role = 'super-admin';
             await adminExists.save();
