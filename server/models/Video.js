@@ -10,6 +10,11 @@ const videoSchema = new mongoose.Schema({
         required: true,
     },
     thumbnailUrl: String,
+    description: String,
+    tournament: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tournament'
+    },
     addedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

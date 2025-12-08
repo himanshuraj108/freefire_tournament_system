@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, User } from 'lucide-react';
+import { Eye, EyeOff, User, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -39,6 +39,11 @@ const Login = () => {
             {/* Background blobs */}
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-red/20 rounded-full blur-[100px]" />
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-blue/20 rounded-full blur-[100px]" />
+
+            <Link to="/" className="absolute top-8 left-8 text-zinc-500 hover:text-white transition-colors flex items-center gap-2 z-20 group">
+                <ArrowLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
+                <span className="font-bold">Back to Home</span>
+            </Link>
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}

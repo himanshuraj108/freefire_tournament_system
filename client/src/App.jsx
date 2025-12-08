@@ -22,80 +22,84 @@ import Settings from './pages/Settings';
 
 import { Toaster } from 'react-hot-toast';
 
+import { SearchProvider } from './context/SearchContext';
+
 function App() {
   return (
     <AuthProvider>
-      <Toaster position="top-center" toastOptions={{
-        style: {
-          background: '#333',
-          color: '#fff',
-        },
-      }} />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+      <SearchProvider>
+        <Toaster position="top-center" toastOptions={{
+          style: {
+            background: '#333',
+            color: '#fff',
+          },
+        }} />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        <Route path="/" element={
-          <Layout>
-            <Home />
-          </Layout>
-        } />
-
-        <Route path="/tournaments" element={
-          <Layout>
-            <Tournaments />
-          </Layout>
-        } />
-
-        <Route path="/all-tournaments" element={
-          <Layout>
-            <AllTournaments />
-          </Layout>
-        } />
-
-        <Route path="/tournament/:id" element={
-          <Layout>
-            <TournamentRoom />
-          </Layout>
-        } />
-
-        <Route path="/videos" element={
-          <Layout>
-            <Videos />
-          </Layout>
-        } />
-
-        <Route path="/admin" element={
-          <Layout>
-            <AdminDashboard />
-          </Layout>
-        } />
-
-        <Route path="/profile" element={
-          <PrivateRoute>
+          <Route path="/" element={
             <Layout>
-              <Profile />
+              <Home />
             </Layout>
-          </PrivateRoute>
-        } />
+          } />
 
-        <Route path="/edit-profile" element={
-          <PrivateRoute>
+          <Route path="/tournaments" element={
             <Layout>
-              <EditProfile />
+              <Tournaments />
             </Layout>
-          </PrivateRoute>
-        } />
+          } />
 
-        <Route path="/settings" element={
-          <PrivateRoute>
+          <Route path="/all-tournaments" element={
             <Layout>
-              <Settings />
+              <AllTournaments />
             </Layout>
-          </PrivateRoute>
-        } />
-      </Routes>
+          } />
+
+          <Route path="/tournament/:id" element={
+            <Layout>
+              <TournamentRoom />
+            </Layout>
+          } />
+
+          <Route path="/videos" element={
+            <Layout>
+              <Videos />
+            </Layout>
+          } />
+
+          <Route path="/admin" element={
+            <Layout>
+              <AdminDashboard />
+            </Layout>
+          } />
+
+          <Route path="/profile" element={
+            <PrivateRoute>
+              <Layout>
+                <Profile />
+              </Layout>
+            </PrivateRoute>
+          } />
+
+          <Route path="/edit-profile" element={
+            <PrivateRoute>
+              <Layout>
+                <EditProfile />
+              </Layout>
+            </PrivateRoute>
+          } />
+
+          <Route path="/settings" element={
+            <PrivateRoute>
+              <Layout>
+                <Settings />
+              </Layout>
+            </PrivateRoute>
+          } />
+        </Routes>
+      </SearchProvider>
     </AuthProvider>
   );
 }

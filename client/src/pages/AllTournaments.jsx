@@ -6,36 +6,49 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { PlayCircle } from 'lucide-react';
 
-const AllTournaments = () => {
-    const [tournaments, setTournaments] = useState([]);
-    const [winnerModal, setWinnerModal] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+import { useSearch } from '../context/SearchContext';
 
-    const navigate = useNavigate();
+const AllTournaments = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
+    const { searchQuery } = useSearch();
+
+    const [tournaments, setTournaments] = useState([]);
+    const [videos, setVideos] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [viewVideo, setViewVideo] = useState(null); // Video to watch
+    const [winnerModal, setWinnerModal] = useState(null);
+
+    const filteredTournaments = tournaments.filter(t =>
+        t.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     useEffect(() => {
-        const fetchTournaments = async () => {
+        const fetchData = async () => {
             setLoading(true);
             try {
-                const res = await axios.get('http://localhost:5000/api/tournaments');
-                // Filter for Archive (Past) Tournaments - ONLY Closed
-                const past = res.data.filter(t => t.status === 'Closed');
+                const [tournamentsRes, videosRes] = await Promise.all([
+                    axios.get('http://localhost:5000/api/tournaments'),
+                    axios.get('http://localhost:5000/api/videos')
+                ]);
+
+                const past = tournamentsRes.data.filter(t => t.status === 'Closed');
                 setTournaments(past);
+                setVideos(videosRes.data);
             } catch (err) {
                 console.error(err);
-                setError('Failed to load archive.');
+                setError('Failed to load data.');
             } finally {
                 setLoading(false);
             }
         };
-        fetchTournaments();
+        fetchData();
     }, []);
 
     return (
         <div className="space-y-8">
-            {/* Header */}
+            {/* ... Header ... */}
             <div className="text-center space-y-4 relative">
                 <button
                     onClick={() => navigate('/tournaments')}
@@ -49,77 +62,136 @@ const AllTournaments = () => {
 
             {loading && <div className="text-center text-zinc-500 animate-pulse text-xl font-bold">Loading History...</div>}
             {error && <div className="text-center text-red-500 font-bold bg-red-500/10 p-4 rounded-xl border border-red-500/20">{error}</div>}
-            {!loading && !error && tournaments.length === 0 && (
+            {!loading && !error && filteredTournaments.length === 0 && (
                 <div className="text-center text-zinc-500 text-lg py-10 bg-white/5 rounded-2xl border border-white/5">
-                    No completed tournaments yet. The history books are empty!
+                    {tournaments.length === 0 ? "No completed tournaments yet." : "No matching tournaments found."}
                 </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {tournaments.map((t) => (
-                    <motion.div
-                        key={t._id}
-                        whileHover={{ y: -5 }}
-                        className="glass-card p-6 rounded-2xl relative overflow-hidden group opacity-80 hover:opacity-100 transition-opacity"
-                    >
-                        {/* Status Badge */}
-                        <div className="absolute top-4 right-4 z-10">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${t.status === 'Completed' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/20' :
-                                'bg-zinc-500/20 text-zinc-400 border border-zinc-500/20'
-                                }`}>
-                                {t.status}
-                            </span>
-                        </div>
+                {filteredTournaments.map((t) => {
+                    // Find linked video
+                    const linkedVideo = videos.find(v => v.tournament && (v.tournament._id === t._id || v.tournament === t._id));
+                    // Note: Populate returns object, if not populated it's ID.
 
-                        {/* Title */}
-                        <div className="mb-6">
-                            <h3 className="text-2xl font-bold text-white mb-2 line-clamp-1">{t.title}</h3>
-                            <p className="text-zinc-400 text-sm">{t.description || 'No description'}</p>
-                        </div>
+                    return (
+                        <motion.div
+                            key={t._id}
+                            whileHover={{ y: -5 }}
+                            className="glass-card p-6 rounded-2xl relative overflow-hidden group opacity-80 hover:opacity-100 transition-opacity"
+                        >
+                            {/* Status Badge */}
+                            <div className="absolute top-4 right-4 z-10">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${t.status === 'Completed' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/20' :
+                                    'bg-zinc-500/20 text-zinc-400 border border-zinc-500/20'
+                                    }`}>
+                                    {t.status}
+                                </span>
+                            </div>
 
-                        {/* Info */}
-                        <div className="space-y-3 mb-6">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="flex items-center gap-2 text-zinc-400">
-                                    <Trophy className="w-4 h-4 text-amber-400" /> Prize Pool
-                                </span>
-                                <span className="text-amber-400 font-bold">{t.prizePool}</span>
+                            {/* Title */}
+                            <div className="mb-6">
+                                <h3 className="text-2xl font-bold text-white mb-2 line-clamp-1">{t.title}</h3>
+                                <p className="text-zinc-400 text-sm">{t.description || 'No description'}</p>
                             </div>
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="flex items-center gap-2 text-zinc-400">
-                                    <Users className="w-4 h-4 text-blue-400" /> Participants
-                                </span>
-                                <span className="text-white">{t.participants.length}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="flex items-center gap-2 text-zinc-400">
-                                    <Clock className="w-4 h-4 text-purple-400" /> Ended
-                                </span>
-                                <span className="text-white">{t.endTime ? new Date(t.endTime).toLocaleDateString() : 'N/A'}</span>
-                            </div>
-                        </div>
 
-                        {/* Footer (Only See Winners + Enter if Joined) */}
-                        <div className="pt-4 border-t border-white/10 flex flex-col gap-2">
-                            {/* Check if user joined this closed tournament */}
-                            {(user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id)) && (
+                            {/* Info */}
+                            <div className="space-y-3 mb-6">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center gap-2 text-zinc-400">
+                                        <Trophy className="w-4 h-4 text-amber-400" /> Prize Pool
+                                    </span>
+                                    <span className="text-amber-400 font-bold">{t.prizePool}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center gap-2 text-zinc-400">
+                                        <Users className="w-4 h-4 text-blue-400" /> Participants
+                                    </span>
+                                    <span className="text-white">{t.participants.length}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center gap-2 text-zinc-400">
+                                        <Clock className="w-4 h-4 text-purple-400" /> Ended
+                                    </span>
+                                    <span className="text-white">{t.endTime ? new Date(t.endTime).toLocaleDateString() : 'N/A'}</span>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="pt-4 border-t border-white/10 flex flex-col gap-2">
+                                {/* Enter Room (History) - Only if joined */}
+                                {(user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id)) && (
+                                    <button
+                                        onClick={() => navigate(`/tournament/${t._id}`)}
+                                        className="w-full bg-neon-blue/10 hover:bg-neon-blue/20 text-neon-blue border border-neon-blue/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-neon-blue/10 flex items-center justify-center gap-2"
+                                    >
+                                        <PlayCircle size={18} /> Enter Room (History)
+                                    </button>
+                                )}
+
+                                {/* Watch Tournament Button (If Video Exists) */}
+                                {linkedVideo && (
+                                    <button
+                                        onClick={() => setViewVideo(linkedVideo)}
+                                        className="w-full bg-red-600/20 hover:bg-red-600/30 text-red-500 border border-red-600/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-red-600/10 flex items-center justify-center gap-2"
+                                    >
+                                        <PlayCircle size={18} /> Watch Tournament
+                                    </button>
+                                )}
+
                                 <button
-                                    onClick={() => navigate(`/tournament/${t._id}`)}
-                                    className="w-full bg-neon-blue/10 hover:bg-neon-blue/20 text-neon-blue border border-neon-blue/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-neon-blue/10 flex items-center justify-center gap-2"
+                                    onClick={() => setWinnerModal(t)}
+                                    className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-amber-500/10 flex items-center justify-center gap-2"
                                 >
-                                    <PlayCircle size={18} /> Enter Room (History)
+                                    <Trophy size={18} /> See Winners
                                 </button>
-                            )}
-                            <button
-                                onClick={() => setWinnerModal(t)}
-                                className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-amber-500/10 flex items-center justify-center gap-2"
-                            >
-                                <Trophy size={18} /> See Winners
-                            </button>
-                        </div>
-                    </motion.div>
-                ))}
+                            </div>
+                        </motion.div>
+                    );
+                })}
             </div>
+
+            {/* Video Modal */}
+            <AnimatePresence>
+                {viewVideo && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+                        onClick={() => setViewVideo(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-zinc-900 border border-white/10 p-1 rounded-2xl w-full max-w-4xl relative"
+                        >
+                            <button
+                                onClick={() => setViewVideo(null)}
+                                className="absolute -top-12 right-0 p-2 text-white hover:text-red-500 transition-colors"
+                            >
+                                <X size={32} />
+                            </button>
+                            <div className="aspect-video w-full rounded-xl overflow-hidden bg-black">
+                                <iframe
+                                    src={`https://www.youtube.com/embed/${viewVideo.youtubeUrl}?autoplay=1`}
+                                    title={viewVideo.title}
+                                    className="w-full h-full"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                />
+                            </div>
+                            <div className="p-4">
+                                <h2 className="text-2xl font-bold text-white mb-2">{viewVideo.title}</h2>
+                                <p className="text-zinc-400">{viewVideo.description}</p>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* WINNER POPUP MODAL */}
             <AnimatePresence>

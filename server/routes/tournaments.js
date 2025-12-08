@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
+const superAdmin = require('../middleware/superAdmin');
 const Tournament = require('../models/Tournament');
 const User = require('../models/User');
 
@@ -11,7 +12,7 @@ const User = require('../models/User');
 router.get('/', async (req, res) => {
     console.log('GET /api/tournaments hit'); // Debug Log
     try {
-        const tournaments = await Tournament.find()
+        const tournaments = await Tournament.find({ approvalStatus: 'approved' })
             .populate('participants.user', 'name ffUid')
             .populate('winners.user', 'name ffUid')
             .sort({ createdAt: -1 }); // Fixed sort specific field
@@ -27,12 +28,12 @@ router.get('/', async (req, res) => {
 // @route   POST api/tournaments
 // @desc    Create a tournament
 // @access  Admin
-// @route   POST api/tournaments
-// @desc    Create a tournament
-// @access  Admin
 router.post('/', [auth, admin], async (req, res) => {
     const { title, type, entryFee, prizePool, schedule, maxPlayers, prizeDistribution, totalWinners, loserPercent } = req.body;
     try {
+        // Auto-approve for everyone
+        const approvalStatus = 'approved';
+
         const newTournament = new Tournament({
             title,
             type,
@@ -42,7 +43,9 @@ router.post('/', [auth, admin], async (req, res) => {
             maxPlayers,
             prizeDistribution,
             totalWinners,
-            loserPercent: loserPercent || 0
+            loserPercent: loserPercent || 0,
+            approvalStatus,
+            createdBy: req.user.id
         });
         const tournament = await newTournament.save();
         res.json(tournament);
@@ -252,6 +255,84 @@ router.post('/:id/chat', auth, async (req, res) => {
         await tournament.save();
         res.json(tournament.messages);
     } catch (err) {
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET api/tournaments/status/pending
+// @desc    Get pending tournaments
+// @access  Super Admin
+router.get('/status/pending', [auth, superAdmin], async (req, res) => {
+    try {
+        const tournaments = await Tournament.find({ approvalStatus: 'pending' }).sort({ createdAt: -1 });
+        res.json(tournaments);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT api/tournaments/:id/approve
+// @desc    Approve a tournament
+// @access  Super Admin
+router.put('/:id/approve', [auth, superAdmin], async (req, res) => {
+    try {
+        const tournament = await Tournament.findById(req.params.id);
+        if (!tournament) return res.status(404).json({ msg: 'Tournament not found' });
+
+        tournament.approvalStatus = 'approved';
+        await tournament.save();
+        res.json(tournament);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   DELETE api/tournaments/:id
+// @desc    Reject (Delete) a tournament
+// @access  Super Admin
+router.delete('/:id', [auth, superAdmin], async (req, res) => {
+    try {
+        const tournament = await Tournament.findById(req.params.id);
+        if (!tournament) return res.status(404).json({ msg: 'Tournament not found' });
+
+        await tournament.deleteOne();
+        res.json({ msg: 'Tournament rejected/deleted' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET api/tournaments/manage/all
+// @desc    Get tournaments for admin dashboard
+// @access  Admin/Super Admin
+router.get('/manage/all', [auth, admin], async (req, res) => {
+    try {
+        let query = {};
+        // If Just Admin (not Super): Show "Approved" OR "My Created (Pending/Any)"
+        // Actually, usually admins want to see ALL active tournaments to manage them (enter results etc).
+        // But they shouldn't see OTHER admins' PENDING tournaments.
+        if (req.user.role !== 'super-admin') {
+            query = {
+                $or: [
+                    { approvalStatus: 'approved' },
+                    { createdBy: req.user.id }
+                ]
+            };
+        }
+        // Super Admin sees ALL (query remains {})
+
+        const tournaments = await Tournament.find(query)
+            .populate('participants.user', 'name ffUid')
+            .populate('winners.user', 'name ffUid')
+            .populate('createdBy', 'name')
+            .sort({ createdAt: -1 });
+
+        res.json(tournaments);
+    } catch (err) {
+        console.error(err.message);
         res.status(500).send('Server Error');
     }
 });

@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Trophy, Users, Clock, CreditCard, X } from 'lucide-react';
+import { Trophy, Users, Clock, CreditCard, X, PlayCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useSearch } from '../context/SearchContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
 const Tournaments = () => {
     const [tournaments, setTournaments] = useState([]);
+    const [videos, setVideos] = useState([]);
     const [winnerModal, setWinnerModal] = useState(null);
     const [selectedTournament, setSelectedTournament] = useState(null);
+    const [viewVideo, setViewVideo] = useState(null);
     const [upiId, setUpiId] = useState('');
     const [playerUids, setPlayerUids] = useState([]);
     const [groupName, setGroupName] = useState('');
@@ -17,19 +20,25 @@ const Tournaments = () => {
     const [error, setError] = useState('');
 
     const { user, loadUser } = useAuth();
+    const { searchQuery } = useSearch();
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchTournaments = async () => {
             setLoading(true);
             try {
-                const res = await axios.get('http://localhost:5000/api/tournaments');
+                const [tournamentsRes, videosRes] = await Promise.all([
+                    axios.get('http://localhost:5000/api/tournaments'),
+                    axios.get('http://localhost:5000/api/videos')
+                ]);
+
                 // Filter for Active Tournaments (Includes Completed until Closed)
-                const active = res.data.filter(t => ['Open', 'Ongoing', 'ResultsPending', 'Completed'].includes(t.status));
+                const active = tournamentsRes.data.filter(t => ['Open', 'Ongoing', 'ResultsPending', 'Completed'].includes(t.status));
                 setTournaments(active);
+                setVideos(videosRes.data);
             } catch (err) {
                 console.error(err);
-                setError('Failed to load tournaments.');
+                setError('Failed to load data.');
             } finally {
                 setLoading(false);
             }
@@ -128,100 +137,161 @@ const Tournaments = () => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {tournaments.map((t) => (
-                    <motion.div
-                        key={t._id}
-                        whileHover={{ y: -5 }}
-                        className="glass-card p-6 rounded-2xl relative overflow-hidden group"
-                    >
-                        {/* Status Badge */}
-                        <div className="absolute top-4 right-4 z-10">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${t.status === 'Open' ? 'bg-green-500/20 text-green-400 border border-green-500/20' :
-                                t.status === 'Ongoing' ? 'bg-neon-red/20 text-neon-red border border-neon-red/20 animate-pulse' :
-                                    t.status === 'Completed' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/20' :
-                                        'bg-zinc-500/20 text-zinc-400 border border-zinc-500/20'
-                                }`}>
-                                {t.status === 'ResultsPending' ? 'Verifying Results' : t.status}
-                            </span>
-                        </div>
-
-                        {/* Title & Desc */}
-                        < div className="mb-6" >
-                            <h3 className="text-2xl font-bold text-white mb-2 line-clamp-1">{t.title}</h3>
-                            <p className="text-zinc-400 text-sm">{t.description || 'No description'}</p>
-                        </div>
-
-                        {/* Info Grid */}
-                        <div className="space-y-3 mb-6">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="flex items-center gap-2 text-zinc-400">
-                                    <Trophy className="w-4 h-4 text-amber-400" /> Prize Pool
+                {tournaments
+                    .filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((t) => (
+                        <motion.div
+                            key={t._id}
+                            whileHover={{ y: -5 }}
+                            className="glass-card p-6 rounded-2xl relative overflow-hidden group"
+                        >
+                            {/* Status Badge */}
+                            <div className="absolute top-4 right-4 z-10">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${t.status === 'Open' ? 'bg-green-500/20 text-green-400 border border-green-500/20' :
+                                    t.status === 'Ongoing' ? 'bg-neon-red/20 text-neon-red border border-neon-red/20 animate-pulse' :
+                                        t.status === 'Completed' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/20' :
+                                            'bg-zinc-500/20 text-zinc-400 border border-zinc-500/20'
+                                    }`}>
+                                    {t.status === 'ResultsPending' ? 'Verifying Results' : t.status}
                                 </span>
-                                <span className="text-amber-400 font-bold">{t.prizePool}</span>
                             </div>
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="flex items-center gap-2 text-zinc-400">
-                                    <Users className="w-4 h-4 text-blue-400" /> Slots
-                                </span>
-                                <span className="text-white">{t.participants.length}/{t.maxPlayers}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="flex items-center gap-2 text-zinc-400">
-                                    <Clock className="w-4 h-4 text-purple-400" /> Start Time
-                                </span>
-                                <span className="text-white">{t.startTime ? new Date(t.startTime).toLocaleString() : (t.schedule ? new Date(t.schedule).toLocaleString() : 'TBA')}</span>
-                            </div>
-                        </div>
 
-                        {/* Buttons Footer */}
-                        <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-3">
-                            {t.status === 'Completed' ? (
-                                <div className="w-full flex gap-2">
-                                    {(user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id)) && (
-                                        <button
-                                            onClick={() => navigate(`/tournament/${t._id}`)}
-                                            className="w-1/2 bg-neon-blue/10 hover:bg-neon-blue/20 text-neon-blue border border-neon-blue/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-neon-blue/10 flex items-center justify-center gap-2"
-                                        >
-                                            <Clock size={16} /> Enter Room
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => setWinnerModal(t)}
-                                        className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-amber-500/10 flex items-center justify-center gap-2"
-                                    >
-                                        <Trophy size={18} /> See Winners
-                                    </button>
+                            {/* Title & Desc */}
+                            < div className="mb-6" >
+                                <h3 className="text-2xl font-bold text-white mb-2 line-clamp-1">{t.title}</h3>
+                                <p className="text-zinc-400 text-sm">{t.description || 'No description'}</p>
+                            </div>
+
+                            {/* Info Grid */}
+                            <div className="space-y-3 mb-6">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center gap-2 text-zinc-400">
+                                        <Trophy className="w-4 h-4 text-amber-400" /> Prize Pool
+                                    </span>
+                                    <span className="text-amber-400 font-bold">{t.prizePool}</span>
                                 </div>
-                            ) : (
-                                <>
-                                    <div className="text-left">
-                                        <p className="text-xs text-zinc-500 uppercase">Entry Fee</p>
-                                        <p className="text-xl font-black text-neon-blue">${t.entryFee}</p>
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            const isJoined = user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id);
-                                            if (isJoined) {
-                                                navigate(`/tournament/${t._id}`);
-                                            } else {
-                                                openJoinModal(t);
-                                            }
-                                        }}
-                                        disabled={t.status !== 'Open' && !user?.tournamentsJoined?.some(joined => joined._id === t._id)}
-                                        className={`px-6 py-2 rounded-lg font-bold transition-all ${(t.status === 'Open' || user?.tournamentsJoined?.some(joined => joined._id === t._id))
-                                            ? 'bg-neon-red hover:bg-red-600 text-white shadow-lg hover:shadow-neon-red/30'
-                                            : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                                            }`}
-                                    >
-                                        {(user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id)) ? 'Enter Tournament' : 'Join Now'}
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    </motion.div>
-                ))
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center gap-2 text-zinc-400">
+                                        <Users className="w-4 h-4 text-blue-400" /> Slots
+                                    </span>
+                                    <span className="text-white">{t.participants.length}/{t.maxPlayers}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center gap-2 text-zinc-400">
+                                        <Clock className="w-4 h-4 text-purple-400" /> Start Time
+                                    </span>
+                                    <span className="text-white">{t.startTime ? new Date(t.startTime).toLocaleString() : (t.schedule ? new Date(t.schedule).toLocaleString() : 'TBA')}</span>
+                                </div>
+                            </div>
+
+                            {/* Buttons Footer */}
+                            <div className="pt-4 border-t border-white/10 flex flex-col gap-2">
+                                {/* Watch Tournament Button (If Video Exists) */}
+                                {(() => {
+                                    const linkedVideo = videos.find(v => v.tournament && (v.tournament._id === t._id || v.tournament === t._id));
+                                    return linkedVideo ? (
+                                        <button
+                                            onClick={() => setViewVideo(linkedVideo)}
+                                            className="w-full bg-red-600/20 hover:bg-red-600/30 text-red-500 border border-red-600/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-red-600/10 flex items-center justify-center gap-2 mb-2"
+                                        >
+                                            <PlayCircle size={18} /> Watch Tournament
+                                        </button>
+                                    ) : null;
+                                })()}
+
+                                <div className="flex items-center justify-between gap-3">
+                                    {t.status === 'Completed' ? (
+                                        <div className="w-full flex gap-2">
+                                            {(user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id)) && (
+                                                <button
+                                                    onClick={() => navigate(`/tournament/${t._id}`)}
+                                                    className="w-1/2 bg-neon-blue/10 hover:bg-neon-blue/20 text-neon-blue border border-neon-blue/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-neon-blue/10 flex items-center justify-center gap-2"
+                                                >
+                                                    <Clock size={16} /> Enter Room
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => setWinnerModal(t)}
+                                                className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-amber-500/10 flex items-center justify-center gap-2"
+                                            >
+                                                <Trophy size={18} /> See Winners
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="text-left">
+                                                <p className="text-xs text-zinc-500 uppercase">Entry Fee</p>
+                                                <p className="text-xl font-black text-neon-blue">${t.entryFee}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const isJoined = user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id);
+                                                    if (isJoined) {
+                                                        navigate(`/tournament/${t._id}`);
+                                                    } else {
+                                                        openJoinModal(t);
+                                                    }
+                                                }}
+                                                disabled={t.status !== 'Open' && !user?.tournamentsJoined?.some(joined => joined._id === t._id)}
+                                                className={`px-6 py-2 rounded-lg font-bold transition-all ${(t.status === 'Open' || user?.tournamentsJoined?.some(joined => joined._id === t._id))
+                                                    ? 'bg-neon-red hover:bg-red-600 text-white shadow-lg hover:shadow-neon-red/30'
+                                                    : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                                                    }`}
+                                            >
+                                                {(user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id))
+                                                    ? 'Enter Tournament'
+                                                    : (t.status !== 'Open' ? 'Completed' : 'Join Now')}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))
                 }
             </div >
+
+            {/* Video Modal */}
+            <AnimatePresence>
+                {viewVideo && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+                        onClick={() => setViewVideo(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-zinc-900 border border-white/10 p-1 rounded-2xl w-full max-w-4xl relative"
+                        >
+                            <button
+                                onClick={() => setViewVideo(null)}
+                                className="absolute -top-12 right-0 p-2 text-white hover:text-red-500 transition-colors"
+                            >
+                                <X size={32} />
+                            </button>
+                            <div className="aspect-video w-full rounded-xl overflow-hidden bg-black">
+                                <iframe
+                                    src={`https://www.youtube.com/embed/${viewVideo.youtubeUrl}?autoplay=1`}
+                                    title={viewVideo.title}
+                                    className="w-full h-full"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                />
+                            </div>
+                            <div className="p-4">
+                                <h2 className="text-2xl font-bold text-white mb-2">{viewVideo.title}</h2>
+                                <p className="text-zinc-400">{viewVideo.description}</p>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* JOIN MODAL (Existing) */}
             < AnimatePresence >

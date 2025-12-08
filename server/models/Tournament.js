@@ -44,6 +44,15 @@ const tournamentSchema = new mongoose.Schema({
         enum: ['Open', 'Upcoming', 'Ongoing', 'Completed', 'ResultsPending', 'Closed'],
         default: 'Open',
     },
+    approvalStatus: {
+        type: String,
+        enum: ['pending', 'approved'],
+        default: 'pending'
+    },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
     maxPlayers: {
         type: Number,
         default: 48,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Play, X, Plus, ThumbsUp, ThumbsDown, MessageSquare, Send } from 'lucide-react';
+import { Play, X, Plus, ThumbsUp, ThumbsDown, MessageSquare, Send, Share2 } from 'lucide-react'; // Added Share2
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAuth } from '../context/AuthContext';
@@ -9,34 +9,56 @@ import { Link } from 'react-router-dom';
 const Videos = () => {
     const { user } = useAuth();
     const [videos, setVideos] = useState([]);
-    const [selectedVideo, setSelectedVideo] = useState(null); // Used for expansion state
-    const [commentText, setCommentText] = useState('');
-
+    const [selectedVideo, setSelectedVideo] = useState(null);
     const [showModal, setShowModal] = useState(false);
-    // ... (rest of state)
+    const [videoData, setVideoData] = useState({ title: '', url: '' });
+    const [commentText, setCommentText] = useState('');
+    const [activeCommentVideo, setActiveCommentVideo] = useState(null); // For comment modal
+    const [replyText, setReplyText] = useState('');
+    const [replyingTo, setReplyingTo] = useState(null);
+    const [expandedReplies, setExpandedReplies] = useState({});
 
-    // Interaction Handlers
+    const handleShare = (e, vid) => {
+        e.stopPropagation();
+        const url = `https://www.youtube.com/watch?v=${vid.youtubeUrl}`;
+        navigator.clipboard.writeText(url);
+        alert('Video Link Copied!');
+    };
+
     const handleLike = async (e, vid) => {
         e.stopPropagation();
+        if (!user) return alert('Please login to like');
         try {
             const res = await axios.put(`http://localhost:5000/api/videos/${vid._id}/like`);
             setVideos(videos.map(v => v._id === vid._id ? { ...v, likes: res.data.likes, dislikes: res.data.dislikes } : v));
-        } catch (err) { alert(err.response?.data?.msg || 'Error'); }
+            if (activeCommentVideo && activeCommentVideo._id === vid._id) {
+                setActiveCommentVideo(prev => ({ ...prev, likes: res.data.likes, dislikes: res.data.dislikes }));
+            }
+        } catch (err) { console.error(err); }
     };
 
     const handleDislike = async (e, vid) => {
         e.stopPropagation();
+        if (!user) return alert('Please login to dislike');
         try {
             const res = await axios.put(`http://localhost:5000/api/videos/${vid._id}/dislike`);
-            setVideos(videos.map(v => v._id === vid._id ? { ...v, dislikes: res.data.dislikes, likes: res.data.likes } : v));
-        } catch (err) { alert(err.response?.data?.msg || 'Error'); }
+            setVideos(videos.map(v => v._id === vid._id ? { ...v, likes: res.data.likes, dislikes: res.data.dislikes } : v));
+            if (activeCommentVideo && activeCommentVideo._id === vid._id) {
+                setActiveCommentVideo(prev => ({ ...prev, likes: res.data.likes, dislikes: res.data.dislikes }));
+            }
+        } catch (err) { console.error(err); }
     };
 
     const handleComment = async (e, vid) => {
         e.preventDefault();
+        if (!user) return alert('Please login to comment');
         try {
             const res = await axios.post(`http://localhost:5000/api/videos/${vid._id}/comment`, { text: commentText });
-            setVideos(videos.map(v => v._id === vid._id ? { ...v, comments: res.data } : v));
+            const updatedComments = res.data;
+            setVideos(videos.map(v => v._id === vid._id ? { ...v, comments: updatedComments } : v));
+            if (activeCommentVideo && activeCommentVideo._id === vid._id) {
+                setActiveCommentVideo(prev => ({ ...prev, comments: updatedComments }));
+            }
             setCommentText('');
         } catch (err) { alert('Error posting comment'); }
     };
@@ -48,25 +70,13 @@ const Videos = () => {
             await axios.delete(`http://localhost:5000/api/videos/${vid._id}`);
             setVideos(videos.filter(v => v._id !== vid._id));
             if (selectedVideo?._id === vid._id) setSelectedVideo(null);
-            alert('Video deleted successfully');
-        } catch (err) {
-            alert('Error deleting video');
-        }
+            alert('Video Deleted');
+        } catch (err) { alert('Failed to delete video'); }
     };
-    const [activeCommentVideo, setActiveCommentVideo] = useState(null);
-    const [replyText, setReplyText] = useState('');
-    const [replyingTo, setReplyingTo] = useState(null); // comment ID
-    const [videoData, setVideoData] = useState({ title: '', url: '' });
-    const [expandedReplies, setExpandedReplies] = useState({}); // { commentId: boolean }
-
-    // ... (Add Video interactions remain same)
-
-
 
     const handleCommentLike = async (vid, commentId) => {
         try {
             const res = await axios.put(`http://localhost:5000/api/videos/${vid._id}/comment/${commentId}/like`);
-            // Response contains the updated comments array
             const updatedComments = res.data;
             setVideos(videos.map(v => v._id === vid._id ? { ...v, comments: updatedComments } : v));
             if (activeCommentVideo && activeCommentVideo._id === vid._id) {
@@ -86,6 +96,7 @@ const Videos = () => {
         } catch (err) { console.error(err); }
     };
 
+    // ... INSIDE RENDER (lines 202+)
     const handleReply = async (e, vid, commentId) => {
         e.preventDefault();
         try {
@@ -146,7 +157,7 @@ const Videos = () => {
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <h1 className="text-4xl font-black italic text-white">LATEST <span className="text-neon-red">HIGHLIGHTS</span></h1>
-                {(user?.role === 'admin' || user?.role === 'sub-admin') && (
+                {user?.role === 'super-admin' && (
                     <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
                         <Plus /> Add Video
                     </button>
@@ -204,7 +215,8 @@ const Videos = () => {
                                 <div className="flex justify-between items-start mb-2">
                                     <h3 className={`font-bold text-white ${isExpanded ? 'text-xl' : 'line-clamp-2'}`}>{v.title}</h3>
                                     {/* Delete Button for Admin (Visible in both grid and expanded) */}
-                                    {(user?.role === 'admin' || user?.role === 'sub-admin') && (
+                                    {/* Delete Button for Admin (Visible in both grid and expanded) */}
+                                    {user?.role === 'super-admin' && (
                                         <button
                                             onClick={(e) => handleDelete(e, v)}
                                             className="ml-2 text-zinc-500 hover:text-red-500 transition-colors p-1"

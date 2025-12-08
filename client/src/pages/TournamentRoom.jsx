@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Send, Settings, Users, MessageSquare, Shield, PlayCircle, StopCircle, Lock, Unlock } from 'lucide-react';
+import { IoSend } from "react-icons/io5";
+import { Send, Settings, Users, MessageSquare, Shield, PlayCircle, StopCircle, Lock, Unlock, ArrowRight } from 'lucide-react';
 
 const TournamentRoom = () => {
     const { id } = useParams();
@@ -233,8 +234,8 @@ const TournamentRoom = () => {
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                             />
-                            <button type="submit" className="absolute right-2 top-2 p-1.5 bg-neon-blue text-black rounded-full hover:scale-105 transition-transform">
-                                <Send className="w-4 h-4" />
+                            <button type="submit" className="absolute right-2 top-1.5 p-2 bg-neon-blue text-black rounded-full hover:scale-105 transition-transform shadow-[0_0_10px_rgba(0,243,255,0.4)]">
+                                <IoSend className="w-5 h-5 text-white" />
                             </button>
                         </div>
                     </form>

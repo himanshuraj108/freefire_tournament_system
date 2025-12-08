@@ -1,15 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const admin = require('../middleware/admin');
+const superAdmin = require('../middleware/superAdmin'); // Import superAdmin
 const Video = require('../models/Video');
+
+// ...
 
 // @route   GET api/videos
 // @desc    Get all videos
 // @access  Public
 router.get('/', async (req, res) => {
     try {
-        const videos = await Video.find().sort({ createdAt: -1 });
+        const videos = await Video.find()
+            .populate('tournament', 'title status')
+            .sort({ createdAt: -1 });
         res.json(videos);
     } catch (err) {
         console.error(err.message);
@@ -19,13 +23,15 @@ router.get('/', async (req, res) => {
 
 // @route   POST api/videos
 // @desc    Add a video
-// @access  Admin
-router.post('/', [auth, admin], async (req, res) => {
-    const { title, youtubeUrl } = req.body;
+// @access  Super Admin
+router.post('/', [auth, superAdmin], async (req, res) => {
+    const { title, youtubeUrl, description, tournament } = req.body;
     try {
         const newVideo = new Video({
             title,
             youtubeUrl,
+            description,
+            tournament: tournament || null,
             addedBy: req.user.id
         });
         const video = await newVideo.save();
@@ -118,7 +124,7 @@ router.post('/:id/comment', auth, async (req, res) => {
 // @route   DELETE api/videos/:id
 // @desc    Delete a video
 // @access  Admin
-router.delete('/:id', [auth, admin], async (req, res) => {
+router.delete('/:id', [auth, superAdmin], async (req, res) => {
     try {
         const video = await Video.findById(req.params.id);
         if (!video) return res.status(404).json({ msg: 'Video not found' });
