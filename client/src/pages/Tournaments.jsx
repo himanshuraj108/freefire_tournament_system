@@ -4,6 +4,7 @@ import { Trophy, Users, Clock, CreditCard, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 
 const Tournaments = () => {
     const [tournaments, setTournaments] = useState([]);
@@ -68,13 +69,15 @@ const Tournaments = () => {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             // Success
+            toast.success('Joined successfully! Preparing for battle...');
+            const joinedId = selectedTournament._id;
             setSelectedTournament(null);
             setUpiId('');
             setPlayerUids([]);
-            // Refresh
-            const res = await axios.get('http://localhost:5000/api/tournaments');
-            const active = res.data.filter(t => ['Open', 'Ongoing', 'ResultsPending'].includes(t.status));
-            setTournaments(active);
+            setGroupName('');
+
+            navigate(`/tournament/${joinedId}`);
+
             if (loadUser) loadUser();
         } catch (err) {
             console.error(err);

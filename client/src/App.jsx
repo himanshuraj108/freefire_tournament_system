@@ -20,9 +20,17 @@ import EditProfile from './pages/EditProfile';
 import TournamentRoom from './pages/TournamentRoom';
 import Settings from './pages/Settings';
 
+import { Toaster } from 'react-hot-toast';
+
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-center" toastOptions={{
+        style: {
+          background: '#333',
+          color: '#fff',
+        },
+      }} />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

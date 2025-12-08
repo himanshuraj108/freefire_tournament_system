@@ -10,6 +10,11 @@ const AdminDashboard = () => {
     const [manageModal, setManageModal] = useState(null); // ID of tournament to manage
     const [selectedTournament, setSelectedTournament] = useState(null);
 
+    // Auto-Prize Config
+    const [isAutoPrize, setIsAutoPrize] = useState(false);
+    const [adminFeePercent, setAdminFeePercent] = useState(50);
+    const [distStrategy, setDistStrategy] = useState('Standard'); // 'Standard', 'Halving'
+
     const [formData, setFormData] = useState({
         title: '', type: 'Solo', entryFee: 0, prizePool: '', schedule: '', maxPlayers: 48,
         startTime: '', endTime: '', totalWinners: 3, prizeDistribution: ['', '', '']
@@ -27,15 +32,80 @@ const AdminDashboard = () => {
     }, [activeTab]);
 
     // Update prize distribution array when total winners changes
+    // Auto-calculate prizes when config changes
     useEffect(() => {
+        if (!isAutoPrize) return;
+
+        const entry = parseFloat(formData.entryFee) || 0;
+        const players = parseInt(formData.maxPlayers) || 0;
+        const revenue = entry * players;
+        const adminCut = revenue * (adminFeePercent / 100);
+        const userPot = revenue - adminCut;
+
+        // Auto-set Prize Pool Text
+        const newPrizePoolText = `$${Math.floor(userPot)}`;
+
+        // Distribute
+        const winners = parseInt(formData.totalWinners) || 1;
+        let distribution = [];
+
+        let remainingPot = userPot;
+
+        for (let i = 0; i < winners; i++) {
+            let amount = 0;
+            if (distStrategy === 'Standard') {
+                // Top 3 weighted, rest split
+                if (i === 0) amount = userPot * 0.5; // 50%
+                else if (i === 1) amount = userPot * 0.3; // 30%
+                else if (i === 2) amount = userPot * 0.2; // 20%
+                else amount = 0; // Standard only covers top 3 effectively in this simple model, or maybe split the last 20% among rest?
+
+                // Adjustment for >3 winners in Standard:
+                if (winners > 3 && i >= 3) {
+                    // If we have more than 3, maybe we should have reserved 10% for them?
+                    // Let's stick to simple logic: Standard = 50-30-20. Only works well for 3. 
+                    // If >3, the loop produces 0.
+                    // Let's improve:
+                    if (winners > 3) {
+                        if (i === 0) amount = userPot * 0.45;
+                        else if (i === 1) amount = userPot * 0.25;
+                        else if (i === 2) amount = userPot * 0.15;
+                        else amount = (userPot * 0.15) / (winners - 3);
+                    }
+                }
+            } else if (distStrategy === 'Halving') {
+                // Each position gets 50% of what's left
+                // Last position gets effectively everything remaining to clear the pot? or just 50%?
+                // "Rest user will get 50% of amount"
+                if (i === winners - 1) {
+                    amount = remainingPot; // Last winner takes remainder? Or also 50%? Usually last takes remainder to empty pot.
+                } else {
+                    amount = remainingPot * 0.5;
+                }
+            }
+
+            remainingPot -= amount;
+            distribution.push(`$${Math.floor(amount)}`);
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            prizePool: newPrizePoolText,
+            prizeDistribution: distribution,
+            // Ensure array size matches
+        }));
+
+    }, [isAutoPrize, adminFeePercent, distStrategy, formData.entryFee, formData.maxPlayers, formData.totalWinners]);
+
+    // Resize distribution array if totalWinners changes manually (only if NOT auto, or to sync size)
+    useEffect(() => {
+        if (isAutoPrize) return; // Handled by above effect
         setFormData(prev => {
             const currentDist = [...prev.prizeDistribution];
             const newCount = parseInt(prev.totalWinners) || 0;
             if (newCount > currentDist.length) {
-                // Add empty strings
                 return { ...prev, prizeDistribution: [...currentDist, ...Array(newCount - currentDist.length).fill('')] };
             } else if (newCount < currentDist.length) {
-                // Slice
                 return { ...prev, prizeDistribution: currentDist.slice(0, newCount) };
             }
             return prev;
@@ -333,11 +403,56 @@ const AdminDashboard = () => {
 
                                             {/* Section 3: Winners Config */}
                                             <div className="space-y-4">
-                                                <div className="flex justify-between items-end">
-                                                    <h3 className="text-sm font-bold text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                                                        <span className="w-8 h-[1px] bg-amber-400/50"></span> Prize Structure
-                                                    </h3>
-                                                    <div className="flex items-center gap-2 bg-black/40 px-3 py-1 rounded-lg border border-white/5">
+                                                <div className="flex flex-col gap-4">
+                                                    <div className="flex justify-between items-center">
+                                                        <h3 className="text-sm font-bold text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                                                            <span className="w-8 h-[1px] bg-amber-400/50"></span> Prize Structure
+                                                        </h3>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsAutoPrize(!isAutoPrize)}
+                                                            className={`text-xs font-bold px-3 py-1 rounded-full border transition-all ${isAutoPrize ? 'bg-amber-400 text-black border-amber-400' : 'bg-transparent text-zinc-500 border-zinc-700'}`}
+                                                        >
+                                                            {isAutoPrize ? '✨ Auto-Calc ON' : 'Manual Mode'}
+                                                        </button>
+                                                    </div>
+
+                                                    {isAutoPrize && (
+                                                        <div className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/20 space-y-4">
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div>
+                                                                    <label className="text-xs text-amber-400 font-bold mb-1 block">Admin Commission (%)</label>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <input
+                                                                            type="range" min="0" max="90" step="5"
+                                                                            value={adminFeePercent}
+                                                                            onChange={e => setAdminFeePercent(parseInt(e.target.value))}
+                                                                            className="flex-1 accent-amber-400 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                                                                        />
+                                                                        <span className="text-white font-mono font-bold w-12 text-right">{adminFeePercent}%</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-amber-400 font-bold mb-1 block">Distribution Algo</label>
+                                                                    <select
+                                                                        value={distStrategy}
+                                                                        onChange={e => setDistStrategy(e.target.value)}
+                                                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:border-amber-400 outline-none"
+                                                                    >
+                                                                        <option value="Standard">Standard (Top 3 Heavy)</option>
+                                                                        <option value="Halving">Recursive 50% Split</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-between text-xs text-zinc-400 font-mono pt-2 border-t border-white/5">
+                                                                <span>Est. Revenue: <span className="text-white">${(parseFloat(formData.entryFee) || 0) * (parseInt(formData.maxPlayers) || 0)}</span></span>
+                                                                <span>Admin Cut: <span className="text-neon-red">${((parseFloat(formData.entryFee) || 0) * (parseInt(formData.maxPlayers) || 0) * (adminFeePercent / 100)).toFixed(0)}</span></span>
+                                                                <span>Player Pot: <span className="text-amber-400">${((parseFloat(formData.entryFee) || 0) * (parseInt(formData.maxPlayers) || 0) * (1 - adminFeePercent / 100)).toFixed(0)}</span></span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex items-center gap-2 bg-black/40 px-3 py-1 rounded-lg border border-white/5 w-fit ml-auto">
                                                         <label className="text-xs text-zinc-400">Total Winners:</label>
                                                         <input
                                                             type="number"
