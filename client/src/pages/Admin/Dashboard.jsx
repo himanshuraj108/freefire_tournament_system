@@ -298,6 +298,17 @@ const AdminDashboard = () => {
         } catch (err) { console.error(err); }
     }
 
+    const fetchUsers = async () => {
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/users`, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            setUsers(res.data);
+        } catch (err) {
+            console.error('Error fetching users:', err);
+        }
+    };
+
     const openManageModal = (t) => {
         setSelectedTournament(t);
         // Initialize winners list based on tournament config
