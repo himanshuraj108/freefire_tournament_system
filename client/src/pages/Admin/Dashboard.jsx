@@ -309,6 +309,16 @@ const AdminDashboard = () => {
         }
     };
 
+    const fetchPendingTournaments = async () => {
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/tournaments/manage/all`, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            const all = res.data;
+            setPendingTournaments(all.filter(t => t.approvalStatus === 'pending'));
+        } catch (err) { console.error(err); }
+    };
+
     const openManageModal = (t) => {
         setSelectedTournament(t);
         // Initialize winners list based on tournament config
