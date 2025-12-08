@@ -105,8 +105,8 @@ const Login = () => {
                     </button>
 
                     <div className="text-center text-sm text-zinc-500">
-                        <p className="mb-2">
-                            Don't have an account? <Link to="/register" className="text-neon-blue hover:text-white transition-colors">Register Here</Link>
+                        <p className="mb-2 flex items-center justify-center gap-1">
+                            Don't have an account? <Link to="/register" className="text-neon-blue font-black text-base hover:text-white hover:underline transition-all">REGISTER HERE</Link>
                         </p>
                         <Link
                             to="/forgot-password"
