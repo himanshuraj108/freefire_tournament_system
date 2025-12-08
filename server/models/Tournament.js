@@ -27,6 +27,10 @@ const tournamentSchema = new mongoose.Schema({
         type: Number,
         default: 3
     },
+    loserPercent: {
+        type: Number,
+        default: 0
+    },
     schedule: {
         type: Date,
         required: true,

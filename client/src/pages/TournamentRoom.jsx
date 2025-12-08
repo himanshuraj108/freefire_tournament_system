@@ -125,13 +125,24 @@ const TournamentRoom = () => {
                                     (w.user === p.user._id) || (p.groupName && w.groupName === p.groupName)
                                 );
 
+                                // Loser Cashback Logic
+                                const isLoser = (tournament.status === 'Completed' || tournament.status === 'Closed') && !winnerInfo && tournament.loserPercent > 0;
+                                const cashbackAmount = isLoser ? Math.floor(tournament.entryFee * (tournament.loserPercent / 100)) : 0;
+
                                 return (
-                                    <div key={i} className={`relative p-3 rounded-lg flex items-start gap-3 border transition-all group ${winnerInfo ? 'bg-amber-500/10 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 'bg-black/40 border-white/5 hover:bg-white/5'}`}>
+                                    <div key={i} className={`relative p-3 rounded-lg flex items-start gap-3 border transition-all group ${winnerInfo ? 'bg-amber-500/10 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : isLoser ? 'bg-zinc-900/40 border-zinc-700 hover:bg-zinc-800' : 'bg-black/40 border-white/5 hover:bg-white/5'}`}>
                                         {/* Winner Badge */}
                                         {winnerInfo && (
                                             <div className="absolute -top-3 -right-2 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/20 flex items-center gap-1">
                                                 <span>#{winnerInfo.position}</span>
                                                 <span>🏆 {winnerInfo.prize}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Loser Cashback Badge */}
+                                        {isLoser && (
+                                            <div className="absolute -top-3 -right-2 bg-zinc-700 text-zinc-300 text-[10px] font-bold px-2 py-0.5 rounded-full shadow border border-white/10 flex items-center gap-1">
+                                                <span>↩ ${cashbackAmount}</span>
                                             </div>
                                         )}
 
@@ -141,11 +152,11 @@ const TournamentRoom = () => {
                                         <div className="overflow-hidden w-full">
                                             {p.groupName ? (
                                                 <div className="flex flex-col">
-                                                    <span className={`font-black truncate text-sm ${winnerInfo ? 'text-amber-400' : 'text-neon-blue'}`}>{p.groupName}</span>
+                                                    <span className={`font-black truncate text-sm ${winnerInfo ? 'text-amber-400' : isLoser ? 'text-zinc-400' : 'text-neon-blue'}`}>{p.groupName}</span>
                                                     <span className="text-zinc-400 text-xs truncate">C: {p.user.name}</span>
                                                 </div>
                                             ) : (
-                                                <p className={`font-bold truncate text-sm ${winnerInfo ? 'text-amber-400' : 'text-white'}`}>{p.user.name}</p>
+                                                <p className={`font-bold truncate text-sm ${winnerInfo ? 'text-amber-400' : isLoser ? 'text-zinc-400' : 'text-white'}`}>{p.user.name}</p>
                                             )}
 
                                             {p.playerUids && p.playerUids.length > 0 ? (

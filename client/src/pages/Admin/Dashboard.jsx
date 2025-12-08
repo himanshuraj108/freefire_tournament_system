@@ -9,15 +9,85 @@ const AdminDashboard = () => {
     const [showModal, setShowModal] = useState(false);
     const [manageModal, setManageModal] = useState(null); // ID of tournament to manage
     const [selectedTournament, setSelectedTournament] = useState(null);
+    // Edit Form State for Manage Modal
+    const [editFormData, setEditFormData] = useState({});
+    const [isEditMode, setIsEditMode] = useState(false);
 
-    // Auto-Prize Config
+    // Edit Auto-Prize Config
+    const [editIsAutoPrize, setEditIsAutoPrize] = useState(false);
+    const [editAdminFee, setEditAdminFee] = useState(50);
+    const [editDistStrategy, setEditDistStrategy] = useState('Standard');
+
+    // ... (Existing States)
+
+    // ... 
+
+    // Resize Edit Form Distribution
+    useEffect(() => {
+        if (!isEditMode) return;
+        setEditFormData(prev => {
+            const currentDist = [...(prev.prizeDistribution || [])];
+            const newCount = parseInt(prev.totalWinners) || 0;
+            if (newCount > currentDist.length) {
+                return { ...prev, prizeDistribution: [...currentDist, ...Array(newCount - currentDist.length).fill('')] };
+            } else if (newCount < currentDist.length) {
+                return { ...prev, prizeDistribution: currentDist.slice(0, newCount) };
+            }
+            return prev;
+        });
+    }, [editFormData.totalWinners, isEditMode]);
+
+    // Edit Form Auto-Calc Effect
+    useEffect(() => {
+        if (!editIsAutoPrize) return;
+
+        const entry = parseFloat(editFormData.entryFee) || 0;
+        const players = parseInt(editFormData.maxPlayers) || 0;
+        const revenue = entry * players;
+        const adminCut = revenue * (editAdminFee / 100);
+        const userPot = revenue - adminCut;
+
+        const newPrizePoolText = `$${Math.floor(userPot)}`;
+
+        const winners = parseInt(editFormData.totalWinners) || 1;
+        let distribution = [];
+        let remainingPot = userPot;
+
+        for (let i = 0; i < winners; i++) {
+            let amount = 0;
+            if (editDistStrategy === 'Standard') {
+                if (i === 0) amount = userPot * 0.5;
+                else if (i === 1) amount = userPot * 0.3;
+                else if (i === 2) amount = userPot * 0.2;
+                else amount = 0;
+
+                if (winners > 3 && i >= 3) {
+                    if (i === 0) amount = userPot * 0.45;
+                    else if (i === 1) amount = userPot * 0.25;
+                    else if (i === 2) amount = userPot * 0.15;
+                    else amount = (userPot * 0.15) / (winners - 3);
+                }
+            } else if (editDistStrategy === 'Halving') {
+                if (i === winners - 1) amount = remainingPot;
+                else amount = remainingPot * 0.5;
+            }
+            remainingPot -= amount;
+            distribution.push(`$${Math.floor(amount)}`);
+        }
+
+        setEditFormData(prev => ({
+            ...prev,
+            prizePool: newPrizePoolText,
+            prizeDistribution: distribution,
+        }));
+    }, [editIsAutoPrize, editAdminFee, editDistStrategy, editFormData.entryFee, editFormData.maxPlayers, editFormData.totalWinners]);
     const [isAutoPrize, setIsAutoPrize] = useState(false);
     const [adminFeePercent, setAdminFeePercent] = useState(50);
     const [distStrategy, setDistStrategy] = useState('Standard'); // 'Standard', 'Halving'
 
     const [formData, setFormData] = useState({
         title: '', type: 'Solo', entryFee: 0, prizePool: '', schedule: '', maxPlayers: 48,
-        startTime: '', endTime: '', totalWinners: 3, prizeDistribution: ['', '', '']
+        startTime: '', endTime: '', totalWinners: 3, prizeDistribution: ['', '', ''], loserPercent: 0
     });
 
     const [videos, setVideos] = useState([]);
@@ -54,18 +124,12 @@ const AdminDashboard = () => {
         for (let i = 0; i < winners; i++) {
             let amount = 0;
             if (distStrategy === 'Standard') {
-                // Top 3 weighted, rest split
-                if (i === 0) amount = userPot * 0.5; // 50%
-                else if (i === 1) amount = userPot * 0.3; // 30%
-                else if (i === 2) amount = userPot * 0.2; // 20%
-                else amount = 0; // Standard only covers top 3 effectively in this simple model, or maybe split the last 20% among rest?
+                if (i === 0) amount = userPot * 0.5;
+                else if (i === 1) amount = userPot * 0.3;
+                else if (i === 2) amount = userPot * 0.2;
+                else amount = 0;
 
-                // Adjustment for >3 winners in Standard:
                 if (winners > 3 && i >= 3) {
-                    // If we have more than 3, maybe we should have reserved 10% for them?
-                    // Let's stick to simple logic: Standard = 50-30-20. Only works well for 3. 
-                    // If >3, the loop produces 0.
-                    // Let's improve:
                     if (winners > 3) {
                         if (i === 0) amount = userPot * 0.45;
                         else if (i === 1) amount = userPot * 0.25;
@@ -74,16 +138,12 @@ const AdminDashboard = () => {
                     }
                 }
             } else if (distStrategy === 'Halving') {
-                // Each position gets 50% of what's left
-                // Last position gets effectively everything remaining to clear the pot? or just 50%?
-                // "Rest user will get 50% of amount"
                 if (i === winners - 1) {
-                    amount = remainingPot; // Last winner takes remainder? Or also 50%? Usually last takes remainder to empty pot.
+                    amount = remainingPot;
                 } else {
                     amount = remainingPot * 0.5;
                 }
             }
-
             remainingPot -= amount;
             distribution.push(`$${Math.floor(amount)}`);
         }
@@ -92,14 +152,12 @@ const AdminDashboard = () => {
             ...prev,
             prizePool: newPrizePoolText,
             prizeDistribution: distribution,
-            // Ensure array size matches
         }));
-
     }, [isAutoPrize, adminFeePercent, distStrategy, formData.entryFee, formData.maxPlayers, formData.totalWinners]);
 
-    // Resize distribution array if totalWinners changes manually (only if NOT auto, or to sync size)
+    // Resize distribution array if totalWinners changes manually
     useEffect(() => {
-        if (isAutoPrize) return; // Handled by above effect
+        if (isAutoPrize) return;
         setFormData(prev => {
             const currentDist = [...prev.prizeDistribution];
             const newCount = parseInt(prev.totalWinners) || 0;
@@ -111,6 +169,41 @@ const AdminDashboard = () => {
             return prev;
         });
     }, [formData.totalWinners]);
+
+    // Resize Edit Form Distribution
+    useEffect(() => {
+        if (!isEditMode) return;
+        setEditFormData(prev => {
+            const currentDist = [...(prev.prizeDistribution || [])];
+            const newCount = parseInt(prev.totalWinners) || 0;
+            if (newCount > currentDist.length) {
+                return { ...prev, prizeDistribution: [...currentDist, ...Array(newCount - currentDist.length).fill('')] };
+            } else if (newCount < currentDist.length) {
+                return { ...prev, prizeDistribution: currentDist.slice(0, newCount) };
+            }
+            return prev;
+        });
+    }, [editFormData.totalWinners, isEditMode]);
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const distributionArray = editFormData.prizeDistribution.map((p, i) => ({
+                rank: i + 1,
+                prize: p
+            }));
+
+            const payload = { ...editFormData, prizeDistribution: distributionArray };
+            await axios.put(`http://localhost:5000/api/tournaments/${selectedTournament._id}`, payload);
+            alert('Tournament Details Updated!');
+            fetchTournaments();
+            setIsEditMode(false);
+            setManageModal(false);
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update tournament');
+        }
+    };
 
     const fetchTournaments = async () => {
         try {
@@ -131,6 +224,21 @@ const AdminDashboard = () => {
         // Initialize winners list based on tournament config
         const count = t.totalWinners || 3;
         setWinnersList(Array(count).fill(''));
+
+        // Populate Edit Form
+        setEditFormData({
+            title: t.title,
+            type: t.type,
+            entryFee: t.entryFee,
+            prizePool: t.prizePool,
+            schedule: t.schedule ? new Date(t.schedule).toISOString().slice(0, 16) : '',
+            maxPlayers: t.maxPlayers,
+            totalWinners: t.totalWinners || 3,
+            prizeDistribution: t.prizeDistribution.map(p => p.prize), // Extract prize strings
+            loserPercent: t.loserPercent || 0
+        });
+        setIsEditMode(false);
+        setEditIsAutoPrize(false);
         setManageModal(true);
     };
 
@@ -444,10 +552,33 @@ const AdminDashboard = () => {
                                                                     </select>
                                                                 </div>
                                                             </div>
+
+                                                            {/* Loser Cashback Setting (User Request) */}
+                                                            <div className="pt-2 border-t border-white/5">
+                                                                <label className="text-xs text-neon-blue font-bold mb-1 block">Loser Cashback % (Consolation)</label>
+                                                                <div className="flex items-center gap-2">
+                                                                    <input
+                                                                        type="range" min="0" max="100" step="10"
+                                                                        value={formData.loserPercent || 0}
+                                                                        onChange={e => setFormData({ ...formData, loserPercent: parseInt(e.target.value) })}
+                                                                        className="flex-1 accent-neon-blue h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                                                                    />
+                                                                    <span className="text-white font-mono font-bold w-12 text-right">{formData.loserPercent || 0}%</span>
+                                                                </div>
+                                                                <p className="text-[10px] text-zinc-400 mt-1">
+                                                                    Each loser gets: <span className="text-neon-blue font-bold">${((parseFloat(formData.entryFee) || 0) * ((formData.loserPercent || 0) / 100)).toFixed(0)}</span>
+                                                                </p>
+                                                            </div>
+
                                                             <div className="flex justify-between text-xs text-zinc-400 font-mono pt-2 border-t border-white/5">
-                                                                <span>Est. Revenue: <span className="text-white">${(parseFloat(formData.entryFee) || 0) * (parseInt(formData.maxPlayers) || 0)}</span></span>
-                                                                <span>Admin Cut: <span className="text-neon-red">${((parseFloat(formData.entryFee) || 0) * (parseInt(formData.maxPlayers) || 0) * (adminFeePercent / 100)).toFixed(0)}</span></span>
-                                                                <span>Player Pot: <span className="text-amber-400">${((parseFloat(formData.entryFee) || 0) * (parseInt(formData.maxPlayers) || 0) * (1 - adminFeePercent / 100)).toFixed(0)}</span></span>
+                                                                <span>Revenue: <span className="text-white">${(parseFloat(formData.entryFee) || 0) * (parseInt(formData.maxPlayers) || 0)}</span></span>
+                                                                <span>Admin: <span className="text-neon-red">${((parseFloat(formData.entryFee) || 0) * (parseInt(formData.maxPlayers) || 0) * (adminFeePercent / 100)).toFixed(0)}</span></span>
+                                                                {/* Adjusted Pot for winners after Refunds */}
+                                                                <span>Winner Pot: <span className="text-amber-400">${
+                                                                    ((parseFloat(formData.entryFee) || 0) * (parseInt(formData.maxPlayers) || 0) * (1 - adminFeePercent / 100) -
+                                                                        ((parseFloat(formData.maxPlayers) || 0) - (parseInt(formData.totalWinners) || 0)) * ((parseFloat(formData.entryFee) || 0) * ((formData.loserPercent || 0) / 100))
+                                                                    ).toFixed(0)
+                                                                }</span></span>
                                                             </div>
                                                         </div>
                                                     )}
@@ -546,61 +677,177 @@ const AdminDashboard = () => {
                                     <h2 className="text-3xl font-bold text-white mb-2">{selectedTournament.title}</h2>
                                     <p className="text-neon-blue font-mono">{selectedTournament._id}</p>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right flex flex-col items-end gap-2">
                                     <span className="block text-sm text-zinc-400">Current Status</span>
                                     <span className="text-xl font-bold text-white">{selectedTournament.status}</span>
-                                </div>
-                            </div>
-
-                            {/* Lifecycle Controls */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                                <button onClick={() => handleLifecycleUpdate('Start')} className="btn-primary py-3 flex justify-center items-center gap-2">
-                                    Start Tournament
-                                </button>
-                                <button onClick={() => handleLifecycleUpdate('End')} className="btn-secondary py-3 flex justify-center items-center gap-2">
-                                    End Game & Verify
-                                </button>
-                                <button onClick={() => handleLifecycleUpdate('Close')} className="border border-red-500 text-red-500 hover:bg-red-500/10 py-3 rounded-xl font-bold">
-                                    Close Tournament
-                                </button>
-                            </div>
-
-                            {/* Winner Declaration */}
-                            {selectedTournament.status === 'ResultsPending' && (
-                                <div className="bg-black/30 p-6 rounded-2xl mb-8 border border-amber-500/20">
-                                    <h3 className="text-xl font-bold text-amber-400 mb-4 flex items-center gap-2"><Trophy /> Declare Winners ({winnersList.length} Positions)</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {winnersList.map((val, index) => (
-                                            <div key={index}>
-                                                <label className="text-sm text-zinc-400 mb-1 block">
-                                                    Rank #{index + 1}
-                                                    <span className="text-amber-500 ml-2">
-                                                        ({selectedTournament.prizeDistribution && selectedTournament.prizeDistribution[index] ? selectedTournament.prizeDistribution[index].prize : 'Prize'})
-                                                    </span>
-                                                </label>
-                                                <select
-                                                    className="input-field"
-                                                    value={val}
-                                                    onChange={(e) => {
-                                                        const newList = [...winnersList];
-                                                        newList[index] = e.target.value;
-                                                        setWinnersList(newList);
-                                                    }}
-                                                >
-                                                    <option value="">Select User</option>
-                                                    {selectedTournament.participants.slice().reverse().map((p, i) => (
-                                                        <option key={p.user ? p.user._id : i} value={p.user ? p.user._id : ''}>
-                                                            {p.groupName ? `${p.groupName} (C: ${p.user ? p.user.name : '-'})` : `${p.user ? p.user.name : 'Unknown'} (${p.user ? p.user.ffUid : 'N/A'})`}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <button onClick={handleDeclareWinners} className="w-full mt-4 bg-amber-500 text-black font-bold py-3 rounded-xl hover:bg-amber-400 transition-colors">
-                                        Confirm {winnersList.length} Winners
+                                    <button
+                                        onClick={() => setIsEditMode(!isEditMode)}
+                                        className="mt-2 text-xs font-bold border border-white/20 px-3 py-1 rounded hover:bg-white/10 transition-colors"
+                                    >
+                                        {isEditMode ? 'Cancel Editing' : 'Edit Configuration'}
                                     </button>
                                 </div>
+                            </div>
+
+                            {isEditMode ? (
+                                <form onSubmit={handleEditSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-xs text-zinc-500 font-bold mb-1 block">Title</label>
+                                            <input type="text" className="input-field w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white" value={editFormData.title} onChange={e => setEditFormData({ ...editFormData, title: e.target.value })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-zinc-500 font-bold mb-1 block">Schedule</label>
+                                            <input type="datetime-local" className="input-field w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white [color-scheme:dark]" value={editFormData.schedule} onChange={e => setEditFormData({ ...editFormData, schedule: e.target.value })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-zinc-500 font-bold mb-1 block">Type</label>
+                                            <select className="input-field w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white" value={editFormData.type} onChange={e => setEditFormData({ ...editFormData, type: e.target.value })}>
+                                                <option value="Solo">Solo</option>
+                                                <option value="Duo">Duo</option>
+                                                <option value="Squad">Squad</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-zinc-500 font-bold mb-1 block">Max Players</label>
+                                            <input type="number" className="input-field w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white" value={editFormData.maxPlayers} onChange={e => setEditFormData({ ...editFormData, maxPlayers: e.target.value })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-zinc-500 font-bold mb-1 block">Entry Fee</label>
+                                            <input type="number" className="input-field w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white" value={editFormData.entryFee} onChange={e => setEditFormData({ ...editFormData, entryFee: e.target.value })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-zinc-500 font-bold mb-1 block">Prize Pool Text</label>
+                                            <input type="text" className="input-field w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white" value={editFormData.prizePool} onChange={e => setEditFormData({ ...editFormData, prizePool: e.target.value })} />
+                                        </div>
+                                    </div>
+
+                                    {/* Advanced Settings */}
+                                    <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-sm font-bold text-neon-blue">Prize & Config</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditIsAutoPrize(!editIsAutoPrize)}
+                                                className={`text-xs font-bold px-3 py-1 rounded-full border transition-all ${editIsAutoPrize ? 'bg-amber-400 text-black border-amber-400' : 'bg-transparent text-zinc-500 border-zinc-700'}`}
+                                            >
+                                                {editIsAutoPrize ? '✨ Auto-Calc ON' : 'Manual Mode'}
+                                            </button>
+                                        </div>
+
+                                        {editIsAutoPrize && (
+                                            <div className="bg-black/20 p-4 rounded-lg border border-white/5 space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="text-xs text-amber-400 font-bold mb-1 block">Admin Commission (%)</label>
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                type="range" min="0" max="90" step="5"
+                                                                value={editAdminFee}
+                                                                onChange={e => setEditAdminFee(parseInt(e.target.value))}
+                                                                className="flex-1 accent-amber-400 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                                                            />
+                                                            <span className="text-white font-mono font-bold w-12 text-right">{editAdminFee}%</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-amber-400 font-bold mb-1 block">Distribution Algo</label>
+                                                        <select
+                                                            value={editDistStrategy}
+                                                            onChange={e => setEditDistStrategy(e.target.value)}
+                                                            className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:border-amber-400 outline-none"
+                                                        >
+                                                            <option value="Standard">Standard (Top 3 Heavy)</option>
+                                                            <option value="Halving">Recursive 50% Split</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-between text-xs text-zinc-400 font-mono pt-2 border-t border-white/5">
+                                                    <span>Rev: <span className="text-white">${(parseFloat(editFormData.entryFee) || 0) * (parseInt(editFormData.maxPlayers) || 0)}</span></span>
+                                                    <span>Admin: <span className="text-neon-red">${((parseFloat(editFormData.entryFee) || 0) * (parseInt(editFormData.maxPlayers) || 0) * (editAdminFee / 100)).toFixed(0)}</span></span>
+                                                    <span>Pot: <span className="text-amber-400">${((parseFloat(editFormData.entryFee) || 0) * (parseInt(editFormData.maxPlayers) || 0) * (1 - editAdminFee / 100)).toFixed(0)}</span></span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex gap-4 items-center">
+                                                <label className="text-xs text-zinc-400">Total Winners:
+                                                    <input type="number" className="ml-2 w-12 bg-black/40 text-center border border-white/10 rounded text-white" value={editFormData.totalWinners} onChange={e => setEditFormData({ ...editFormData, totalWinners: e.target.value })} />
+                                                </label>
+                                                <label className="text-xs text-zinc-400">Loser %:
+                                                    <input type="number" className="ml-2 w-12 bg-black/40 text-center border border-white/10 rounded text-white" value={editFormData.loserPercent} onChange={e => setEditFormData({ ...editFormData, loserPercent: e.target.value })} />
+                                                </label>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                                {editFormData.prizeDistribution?.map((p, i) => (
+                                                    <input key={i} type="text" placeholder={`Rank ${i + 1}`} className="bg-black/40 border border-white/10 rounded px-3 py-1 text-sm text-white" value={p} onChange={e => {
+                                                        const newDist = [...editFormData.prizeDistribution];
+                                                        newDist[i] = e.target.value;
+                                                        setEditFormData({ ...editFormData, prizeDistribution: newDist });
+                                                    }} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" className="w-full btn-primary py-3 rounded-xl font-bold">Save Changes</button>
+                                </form>
+                            ) : (
+                                <>
+                                    {/* Lifecycle Controls */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                        <button onClick={() => handleLifecycleUpdate('Start')} className="btn-primary py-3 flex justify-center items-center gap-2">
+                                            Start Tournament
+                                        </button>
+                                        <button onClick={() => handleLifecycleUpdate('End')} className="btn-secondary py-3 flex justify-center items-center gap-2">
+                                            End Game & Verify
+                                        </button>
+                                        <button onClick={() => handleLifecycleUpdate('Close')} className="border border-red-500 text-red-500 hover:bg-red-500/10 py-3 rounded-xl font-bold">
+                                            Close Tournament
+                                        </button>
+                                    </div>
+
+                                    {/* Winner Declaration */}
+                                    {selectedTournament.status === 'ResultsPending' && (
+                                        <div className="bg-black/30 p-6 rounded-2xl mb-8 border border-amber-500/20">
+                                            <h3 className="text-xl font-bold text-amber-400 mb-4 flex items-center gap-2"><Trophy /> Declare Winners ({winnersList.length} Positions)</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {winnersList.map((val, index) => (
+                                                    <div key={index}>
+                                                        <label className="text-sm text-zinc-400 mb-1 block">
+                                                            Rank #{index + 1}
+                                                            <span className="text-amber-500 ml-2">
+                                                                ({selectedTournament.prizeDistribution && selectedTournament.prizeDistribution[index] ? selectedTournament.prizeDistribution[index].prize : 'Prize'})
+                                                            </span>
+                                                        </label>
+                                                        <select
+                                                            className="input-field"
+                                                            value={val}
+                                                            onChange={(e) => {
+                                                                const newList = [...winnersList];
+                                                                newList[index] = e.target.value;
+                                                                setWinnersList(newList);
+                                                            }}
+                                                        >
+                                                            <option value="">Select User</option>
+                                                            {selectedTournament.participants.slice().reverse().map((p, i) => (
+                                                                <option key={p.user ? p.user._id : i} value={p.user ? p.user._id : ''}>
+                                                                    {p.groupName ? `${p.groupName} (C: ${p.user ? p.user.name : '-'})` : `${p.user ? p.user.name : 'Unknown'} (${p.user ? p.user.ffUid : 'N/A'})`}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <button onClick={handleDeclareWinners} className="w-full mt-4 bg-amber-500 text-black font-bold py-3 rounded-xl hover:bg-amber-400 transition-colors">
+                                                Confirm {winnersList.length} Winners
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
 
                             {/* Participants Table */}

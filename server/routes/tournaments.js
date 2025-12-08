@@ -27,8 +27,11 @@ router.get('/', async (req, res) => {
 // @route   POST api/tournaments
 // @desc    Create a tournament
 // @access  Admin
+// @route   POST api/tournaments
+// @desc    Create a tournament
+// @access  Admin
 router.post('/', [auth, admin], async (req, res) => {
-    const { title, type, entryFee, prizePool, schedule, maxPlayers, prizeDistribution, totalWinners } = req.body;
+    const { title, type, entryFee, prizePool, schedule, maxPlayers, prizeDistribution, totalWinners, loserPercent } = req.body;
     try {
         const newTournament = new Tournament({
             title,
@@ -38,7 +41,8 @@ router.post('/', [auth, admin], async (req, res) => {
             schedule,
             maxPlayers,
             prizeDistribution,
-            totalWinners
+            totalWinners,
+            loserPercent: loserPercent || 0
         });
         const tournament = await newTournament.save();
         res.json(tournament);
@@ -124,6 +128,33 @@ router.get('/:id', async (req, res) => {
             .populate('participants.user', 'name ffUid')
             .populate('messages.sender', 'name role');
         if (!tournament) return res.status(404).json({ msg: 'Not Found' });
+        res.json(tournament);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT api/tournaments/:id
+// @desc    Update Tournament Details
+// @access  Admin
+router.put('/:id', [auth, admin], async (req, res) => {
+    const { title, type, entryFee, prizePool, schedule, maxPlayers, prizeDistribution, totalWinners, loserPercent } = req.body;
+    try {
+        let tournament = await Tournament.findById(req.params.id);
+        if (!tournament) return res.status(404).json({ msg: 'Not Found' });
+
+        tournament.title = title;
+        tournament.type = type;
+        tournament.entryFee = entryFee;
+        tournament.prizePool = prizePool;
+        tournament.schedule = schedule;
+        tournament.maxPlayers = maxPlayers;
+        if (prizeDistribution) tournament.prizeDistribution = prizeDistribution;
+        tournament.totalWinners = totalWinners;
+        tournament.loserPercent = loserPercent || 0;
+
+        await tournament.save();
         res.json(tournament);
     } catch (err) {
         console.error(err.message);
