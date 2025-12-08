@@ -1,7 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
+    const navigate = useNavigate();
     return (
         <div className="space-y-12">
             {/* Hero Section */}
@@ -16,13 +19,15 @@ const Home = () => {
                         DOMINATE THE <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-red to-orange-500">BATTLEGROUND</span>
                     </motion.h1>
                     <p className="text-xl text-zinc-300">Join daily tournaments, complete quests, and win real rewards.</p>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="btn-primary text-xl px-8 py-4"
-                    >
-                        Join Tournament Now
-                    </motion.button>
+                    <Link to="/tournaments">
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="btn-primary text-xl px-8 py-4"
+                        >
+                            Join Tournament Now
+                        </motion.button>
+                    </Link>
                 </div>
             </section>
 

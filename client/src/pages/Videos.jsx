@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Play, X, Plus, ThumbsUp, ThumbsDown, MessageSquare, Send, Share2 } from 'lucide-react'; // Added Share2
+import { IoSend } from "react-icons/io5";
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAuth } from '../context/AuthContext';
@@ -297,7 +298,7 @@ const Videos = () => {
                                                         onChange={(e) => setCommentText(e.target.value)}
                                                     />
                                                     <button type="submit" className="absolute right-1 top-1 p-1.5 bg-neon-blue text-black rounded-full hover:scale-105">
-                                                        <Send size={12} />
+                                                        <IoSend className="w-3 h-3 text-white" />
                                                     </button>
                                                 </form>
 
@@ -418,7 +419,7 @@ const Videos = () => {
                                                         onChange={(e) => setReplyText(e.target.value)}
                                                     />
                                                     <button type="submit" className="p-2 bg-neon-blue text-black rounded-lg hover:bg-neon-blue/80">
-                                                        <Send size={14} />
+                                                        <IoSend size={14} className="text-white" />
                                                     </button>
                                                 </form>
                                             )}
@@ -439,8 +440,8 @@ const Videos = () => {
                                             value={commentText}
                                             onChange={(e) => setCommentText(e.target.value)}
                                         />
-                                        <button type="submit" className="absolute right-2 top-2 p-2 bg-neon-blue text-black rounded-full hover:scale-105 transition-transform">
-                                            <Send size={16} />
+                                        <button type="submit" className="absolute right-2 top-2 p-2 bg-neon-blue text-black rounded-full hover:scale-105 transition-transform shadow-[0_0_10px_rgba(0,243,255,0.4)]">
+                                            <IoSend className="w-5 h-5 text-white" />
                                         </button>
                                     </form>
                                 </div>
