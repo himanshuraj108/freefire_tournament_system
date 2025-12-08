@@ -237,7 +237,7 @@ const Videos = () => {
                                     )}
                                 </div>
 
-                                <p className="text-xs text-zinc-500 mb-4">Added {new Date(v.createdAt).toLocaleDateString()}</p>
+                                <p className="text-xs text-zinc-500 mb-4">Added {v.createdAt ? new Date(v.createdAt).toLocaleDateString() : 'Just now'}</p>
 
                                 {/* Small Box Stats (Visible only when NOT expanded) */}
                                 {
@@ -274,10 +274,10 @@ const Videos = () => {
                                             {/* Actions */}
                                             <div className="flex gap-4">
                                                 <button onClick={(e) => handleLike(e, v)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${v.likes?.includes(user?.id) ? 'bg-neon-blue text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}>
-                                                    <ThumbsUp size={18} /> {v.likes?.length || 0}
+                                                    <ThumbsUp size={18} /> {(v.likes || []).length}
                                                 </button>
                                                 <button onClick={(e) => handleDislike(e, v)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${v.dislikes?.includes(user?.id) ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}>
-                                                    <ThumbsDown size={18} /> {v.dislikes?.length || 0}
+                                                    <ThumbsDown size={18} /> {(v.dislikes || []).length}
                                                 </button>
                                             </div>
 
