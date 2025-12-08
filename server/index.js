@@ -19,19 +19,19 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Connection & Admin Seeding
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/freefire_gaming')
+mongoose.connect(process.env.MONGO_URI)
     .then(async () => {
         console.log('MongoDB Connected');
 
         // Seed Admin from ENV
-        const adminUid = process.env.SUPER_ADMIN_UID || '123456789';
-        const adminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@gamers.com';
-        const adminPassword = process.env.SUPER_ADMIN_PASSWORD || 'admin@123';
+        const adminUid = process.env.SUPER_ADMIN_UID;
+        const adminEmail = process.env.SUPER_ADMIN_EMAIL;
+        const adminPassword = process.env.SUPER_ADMIN_PASSWORD;
 
         const adminExists = await User.findOne({ ffUid: adminUid });
         if (!adminExists) {
             const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(adminPassword, salt);
+            const hashedPassword = bcrypt.hash(adminPassword, salt);
 
             const admin = new User({
                 name: 'Super Admin',
@@ -64,6 +64,10 @@ app.get('/', (req, res) => {
     res.send('FreeFire Gaming API is Running');
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+module.exports = app;
