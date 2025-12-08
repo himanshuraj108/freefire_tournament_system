@@ -165,6 +165,12 @@ const Videos = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {videos.length === 0 && (
+                    <div className="col-span-full text-center py-20">
+                        <p className="text-zinc-500 text-xl">No videos available yet.</p>
+                        {user?.role === 'super-admin' && <p className="text-sm mt-2 text-zinc-600">Click "Add Video" to get started.</p>}
+                    </div>
+                )}
                 {videos.map((v) => {
                     const isExpanded = selectedVideo?._id === v._id;
                     return (
