@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const crypto = require('crypto');
+const Razorpay = require('razorpay');
 const admin = require('../middleware/admin');
 const superAdmin = require('../middleware/superAdmin');
 const Tournament = require('../models/Tournament');
@@ -55,32 +57,85 @@ router.post('/', [auth, admin], async (req, res) => {
     }
 });
 
+// @route   POST api/tournaments/:id/payment/order
+// @desc    Create Razorpay Order
+// @access  Private
+router.post('/:id/payment/order', auth, async (req, res) => {
+    try {
+        const tournament = await Tournament.findById(req.params.id);
+        if (!tournament) return res.status(404).json({ msg: 'Tournament not found' });
+
+        if (tournament.entryFee <= 0) {
+            return res.status(400).json({ msg: 'This tournament is free. No payment required.' });
+        }
+
+        const instance = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET,
+        });
+
+        const options = {
+            amount: tournament.entryFee * 100, // amount in smallest currency unit (paise)
+            currency: "INR",
+            receipt: `receipt_order_${Date.now()}_${req.user.id.slice(0, 6)}`,
+            notes: {
+                tournamentId: tournament._id.toString(),
+                userId: req.user.id
+            }
+        };
+
+        const order = await instance.orders.create(options);
+        res.json({ order, keyId: process.env.RAZORPAY_KEY_ID });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Payment Order Creation Failed');
+    }
+});
+
 // @route   POST api/tournaments/:id/join
 // @desc    Join a tournament
 // @access  Private
 router.post('/:id/join', auth, async (req, res) => {
     try {
-        const tournament = await Tournament.findById(req.params.id);
         const user = await User.findById(req.user.id);
+        const tournament = await Tournament.findById(req.params.id);
 
-        if (!tournament) return res.status(404).json({ msg: 'Tournament not found' });
+        if (!tournament) return res.status(404).json({ msg: 'Not Found' });
 
-        // Check if user already joined
-        const isJoined = tournament.participants.some(p => p.user.toString() === req.user.id);
-        if (isJoined) {
-            return res.status(400).json({ msg: 'Already joined this tournament' });
+        if (tournament.status !== 'Open') {
+            return res.status(400).json({ msg: 'Tournament is not open for registration' });
         }
 
-        // Check availability
         if (tournament.participants.length >= tournament.maxPlayers) {
             return res.status(400).json({ msg: 'Tournament is full' });
         }
 
-        // UPI and Team Details Check
-        const { upiId, playerUids, groupName } = req.body;
+        // Check if already joined
+        const isJoined = tournament.participants.some(p => p.user.toString() === req.user.id);
+        if (isJoined) {
+            return res.status(400).json({ msg: 'Already joined' });
+        }
 
-        if (tournament.entryFee > 0 && !upiId) {
-            return res.status(400).json({ msg: 'UPI ID is required' });
+        const { upiId, playerUids, groupName, razorpayPaymentId, razorpayOrderId, razorpaySignature } = req.body;
+
+        if (tournament.entryFee > 0) {
+            if (!upiId) return res.status(400).json({ msg: 'UPI ID is required' });
+
+            // Validate Payment
+            if (!razorpayPaymentId || !razorpayOrderId || !razorpaySignature) {
+                return res.status(400).json({ msg: 'Payment details missing' });
+            }
+
+            const body = razorpayOrderId + "|" + razorpayPaymentId;
+            const expectedSignature = crypto
+                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+                .update(body.toString())
+                .digest('hex');
+
+            if (expectedSignature !== razorpaySignature) {
+                return res.status(400).json({ msg: 'Invalid Payment Signature' });
+            }
         }
 
         // Validate Team Size based on Type
@@ -107,7 +162,8 @@ router.post('/:id/join', auth, async (req, res) => {
             user: req.user.id,
             upiId: upiId || '',
             playerUids: playerUids,
-            groupName: groupName || ''
+            groupName: groupName || '',
+            paymentId: razorpayPaymentId // Store payment ID if any
         });
         await tournament.save();
 

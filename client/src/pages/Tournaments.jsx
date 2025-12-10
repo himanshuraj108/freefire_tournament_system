@@ -82,35 +82,94 @@ const Tournaments = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await axios.post(`${import.meta.env.VITE_API_URL}/tournaments/${selectedTournament._id}/join`, {
-                upiId,
-                playerUids,
-                groupName
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            // Check if payment required
+            if (selectedTournament.entryFee > 0) {
+                // 1. Create Order
+                const orderRes = await axios.post(`${import.meta.env.VITE_API_URL}/tournaments/${selectedTournament._id}/payment/order`, {}, {
+                    headers: { 'x-auth-token': localStorage.getItem('token') }
+                });
 
-            // Save Teammate UIDs (Exclude Captain's UID at index 0)
-            const teammatesToSave = playerUids.slice(1).filter(uid => uid.trim() !== '');
-            localStorage.setItem('savedTeammates', JSON.stringify(teammatesToSave));
+                const { order, keyId } = orderRes.data;
 
-            // Success
-            toast.success('Joined successfully! Preparing for battle...');
-            const joinedId = selectedTournament._id;
-            setSelectedTournament(null);
-            setUpiId('');
-            setPlayerUids([]);
-            setGroupName('');
+                const options = {
+                    key: keyId,
+                    amount: order.amount,
+                    currency: order.currency,
+                    name: "RYL Gaming",
+                    description: `Entry Fee for ${selectedTournament.title}`,
+                    order_id: order.id,
+                    handler: async function (response) {
+                        try {
+                            // 2. Join with Payment Details
+                            await axios.post(`${import.meta.env.VITE_API_URL}/tournaments/${selectedTournament._id}/join`, {
+                                upiId,
+                                playerUids,
+                                groupName,
+                                razorpayPaymentId: response.razorpay_payment_id,
+                                razorpayOrderId: response.razorpay_order_id,
+                                razorpaySignature: response.razorpay_signature
+                            }, {
+                                headers: { 'x-auth-token': localStorage.getItem('token') }
+                            });
+                            finalizeJoin();
+                        } catch (err) {
+                            console.error(err);
+                            setError(err.response?.data?.msg || 'Payment verification failed');
+                            setLoading(false);
+                        }
+                    },
+                    prefill: {
+                        name: user.name,
+                        email: user.email,
+                        contact: user.phone || ''
+                    },
+                    theme: {
+                        color: "#F59E0B"
+                    },
+                    modal: {
+                        ondismiss: function () {
+                            setLoading(false);
+                            toast.error('Payment cancelled');
+                        }
+                    }
+                };
 
-            navigate(`/tournament/${joinedId}`);
-
-            if (loadUser) loadUser();
+                const rzp1 = new window.Razorpay(options);
+                rzp1.open();
+            } else {
+                // Free entry
+                await axios.post(`${import.meta.env.VITE_API_URL}/tournaments/${selectedTournament._id}/join`, {
+                    upiId,
+                    playerUids,
+                    groupName
+                }, {
+                    headers: { 'x-auth-token': localStorage.getItem('token') }
+                });
+                finalizeJoin();
+            }
         } catch (err) {
             console.error(err);
             setError(err.response?.data?.msg || 'Join failed');
-        } finally {
             setLoading(false);
         }
+    };
+
+    const finalizeJoin = () => {
+        // Save Teammate UIDs (Exclude Captain's UID at index 0)
+        const teammatesToSave = playerUids.slice(1).filter(uid => uid.trim() !== '');
+        localStorage.setItem('savedTeammates', JSON.stringify(teammatesToSave));
+
+        // Success
+        toast.success('Joined successfully! Preparing for battle...');
+        const joinedId = selectedTournament._id;
+        setSelectedTournament(null);
+        setUpiId('');
+        setPlayerUids([]);
+        setGroupName('');
+
+        setLoading(false);
+        navigate(`/tournament/${joinedId}`);
+        if (loadUser) loadUser();
     };
 
     return (
