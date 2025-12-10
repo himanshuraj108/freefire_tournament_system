@@ -221,7 +221,7 @@ const Tournaments = () => {
                                         <>
                                             <div className="text-left">
                                                 <p className="text-xs text-zinc-500 uppercase">Entry Fee</p>
-                                                <p className="text-xl font-black text-neon-blue">₹${t.entryFee}</p>
+                                                <p className="text-xl font-black text-neon-blue">₹{t.entryFee}</p>
                                             </div>
                                             <button
                                                 onClick={() => {
