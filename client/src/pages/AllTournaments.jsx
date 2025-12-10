@@ -122,7 +122,7 @@ const AllTournaments = () => {
                                 {/* Enter Room (History) - Only if joined */}
                                 {(user?.tournamentsJoined?.some(joined => joined._id === t._id) || user?.tournamentsJoined?.includes(t._id)) && (
                                     <button
-                                        onClick={() => navigate(`/ tournament / ${t._id}`)}
+                                        onClick={() => navigate(`/tournament/${t._id}`)}
                                         className="w-full bg-neon-blue/10 hover:bg-neon-blue/20 text-neon-blue border border-neon-blue/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-neon-blue/10 flex items-center justify-center gap-2"
                                     >
                                         <PlayCircle size={18} /> Enter Room (History)
