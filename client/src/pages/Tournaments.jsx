@@ -311,7 +311,7 @@ const Tournaments = () => {
 
                             <div className="bg-black/30 p-4 rounded-xl mb-6 flex justify-between items-center border border-white/5">
                                 <span className="text-zinc-400">Entry Fee</span>
-                                <span className="text-2xl font-bold text-white">${selectedTournament.entryFee}</span>
+                                <span className="text-2xl font-bold text-white">₹{selectedTournament.entryFee}</span>
                             </div>
 
                             <form onSubmit={handleJoinSubmit} className="space-y-4">
