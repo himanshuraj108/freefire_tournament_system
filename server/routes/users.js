@@ -56,11 +56,6 @@ router.put('/:id/ban', [auth, admin], async (req, res) => {
                 requestedBy: req.user.id,
                 requestedAt: Date.now()
             };
-            // Note: Admin cannot set status/expires directly now. They just request "a ban".
-            // The UI should probably just send "request_ban" intent, but keeping same route:
-            // We ignore the specific expires/status for the request, or we could store "intended" ban.
-            // For simplicity based on prompt: "super admin will set duration". So Admin just requests "Ban".
-
             await user.save();
             return res.json({ msg: 'Ban request submitted to Super Admin', user });
         }
@@ -136,33 +131,29 @@ router.put('/:id/role', [auth, superAdmin], async (req, res) => {
 // @access  Private/Admin
 router.put('/:id/unban', [auth, admin], async (req, res) => {
     try {
+        console.log(`[Unban] Attempting to unban user ${req.params.id} by admin ${req.user.id}`);
         let user = await User.findById(req.params.id);
-        if (!user) return res.status(404).json({ msg: 'User not found' });
-
-        // Admin might need approval? For now, let's allow Admin to unban directly or request?
-        // Current logic for BAN is Admin requests, Super Admin approves.
-        // Let's stick to the pattern: If Admin, maybe request unban?
-        // But user asked to "fix unban". Simplist fix is allow direct unban for now, 
-        // or check permissions.
-        // Let's allow Super Admin to unban directly.
-        // If regular Admin, maybe we need similar request flow. 
-        // For simplicity to fix the error immediately:
+        if (!user) {
+            console.log('[Unban] User not found');
+            return res.status(404).json({ msg: 'User not found' });
+        }
 
         if (req.user.role !== 'super-admin' && user.banStatus === 'permanent') {
-            // Maybe restrict admins from unbanning permanent bans?
-            // Let's just allow it for now or check if the user is a super admin.
+            console.log('[Unban] Admin tried to lift permanent ban - soft blocked');
+            // Proceeding for now as per previous logic, just logging
         }
 
         user.banStatus = 'none';
-        user.banExpires = undefined;
-        user.banRequest = { status: 'none' };
+        user.banExpires = null; // Use null instead of undefined for Date
+        user.banRequest = { status: 'none', requestedBy: null, requestedAt: null };
 
         await user.save();
+        console.log(`[Unban] User ${user.name} unbanned successfully`);
         res.json({ msg: 'User unbanned', user });
 
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('[Unban Error]', err.message);
+        res.status(500).json({ msg: 'Server Error during unban', error: err.message });
     }
 });
 
