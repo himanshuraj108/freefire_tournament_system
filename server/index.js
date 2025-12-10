@@ -12,16 +12,30 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // CORS Configuration
-// CORS Configuration
-const corsOptions = {
-    origin: true, // Allow all origins for now to fix the blocking issue
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
-};
+app.use((req, res, next) => {
+    // Allow any origin
+    res.header("Access-Control-Allow-Origin", "*");
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Handle preflight requests
+    // Allow headers
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, x-auth-token, Authorization");
+
+    // Allow methods
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+
+    // Allow credentials
+    res.header("Access-Control-Allow-Credentials", "true");
+
+    // Handle Preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    next();
+});
+
+// app.use(cors(corsOptions)); // Disabled in favor of manual middleware
+// app.options('*', cors(corsOptions)); 
+
 app.use(express.json());
 
 // Serve static files (wrapped for safety)
