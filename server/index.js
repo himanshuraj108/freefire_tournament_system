@@ -87,11 +87,12 @@ app.use(async (req, res, next) => {
 });
 
 // Routes
+app.use('/api/users', require('./routes/users'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/tournaments', require('./routes/tournaments'));
+app.use('/api/upload', require('./routes/upload'));
 app.use('/api/videos', require('./routes/videos'));
-app.use('/api/users', require('./routes/users'));
-// app.use('/api/upload', require('./routes/upload')); // Disable if problematic
+app.use('/api/wallet', require('./routes/wallet'));
 
 app.get('/', (req, res) => {
     res.send('FreeFire Gaming API is Running');

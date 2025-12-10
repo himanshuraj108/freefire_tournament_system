@@ -1,13 +1,63 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { User, Trophy, Wallet, Edit } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
+
 
 const Profile = () => {
-    const { user } = useAuth();
-    // In a real app, we would fetch fresh data including detailed tournament history here.
-    // For now, using 'user' from context which might need refresh.
+    const { user, loadUser } = useAuth();
+    const [withdrawModal, setWithdrawModal] = useState(false);
+    const [withdrawAmount, setWithdrawAmount] = useState('');
+    const [withdrawUpi, setWithdrawUpi] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [transactions, setTransactions] = useState([]);
+
+    React.useEffect(() => {
+        if (user) {
+            fetchTransactions();
+        }
+    }, [user]);
+
+    const fetchTransactions = async () => {
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/user/${user._id}/transactions`); // Fallback if wallet route specific
+            // Actually, we made a specific route: /api/wallet/history
+            const res2 = await axios.get(`${import.meta.env.VITE_API_URL}/wallet/history`, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            setTransactions(res2.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleWithdraw = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            // Updated to use the correct endpoint
+            await axios.post(`${import.meta.env.VITE_API_URL}/wallet/withdraw`, {
+                amount: Number(withdrawAmount),
+                upiId: withdrawUpi
+            }, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            toast.success('Withdrawal request submitted!');
+            setWithdrawModal(false);
+            setWithdrawAmount('');
+            setWithdrawUpi('');
+            fetchTransactions();
+            if (loadUser) loadUser(); // Refresh balance
+        } catch (err) {
+            console.error(err);
+            toast.error(err.response?.data?.msg || 'Withdrawal failed');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (!user) return <div className="text-white">Please Login</div>;
 
@@ -25,7 +75,11 @@ const Profile = () => {
 
                 <div className="w-32 h-32 rounded-full border-4 border-neon-red p-1">
                     <div className="w-full h-full rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden">
-                        <User className="w-16 h-16 text-zinc-500" />
+                        {user.avatar ? (
+                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <User className="w-16 h-16 text-zinc-500" />
+                        )}
                     </div>
                 </div>
 
@@ -43,10 +97,72 @@ const Profile = () => {
                     </div>
                 </div>
 
-                <Link to="/edit-profile" className="btn-secondary flex items-center gap-2 relative z-10">
-                    <Edit className="w-4 h-4" /> Edit Profile
-                </Link>
+                <div className="flex flex-col gap-3 z-10">
+                    <Link to="/edit-profile" className="btn-secondary flex items-center justify-center gap-2">
+                        <Edit className="w-4 h-4" /> Edit Profile
+                    </Link>
+                    <button
+                        onClick={() => setWithdrawModal(true)}
+                        className="bg-green-600/20 hover:bg-green-600/30 text-green-400 border border-green-600/50 px-6 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-green-600/10 flex items-center justify-center gap-2"
+                    >
+                        <Wallet className="w-4 h-4" /> Withdraw
+                    </button>
+                </div>
             </motion.div>
+
+            {/* Withdraw Modal */}
+            <AnimatePresence>
+                {withdrawModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                        onClick={() => setWithdrawModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+                            className="glass-card w-full max-w-sm p-6 rounded-2xl relative"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <h3 className="text-xl font-bold text-white mb-4">Withdraw Funds</h3>
+                            <p className="text-zinc-400 text-sm mb-4">Balance: <span className="text-amber-400 font-bold">₹{user.walletBalance}</span></p>
+
+                            <form onSubmit={handleWithdraw} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs text-zinc-500 mb-1">Amount (₹)</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="1"
+                                        max={user.walletBalance}
+                                        value={withdrawAmount}
+                                        onChange={e => setWithdrawAmount(e.target.value)}
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-green-500 outline-none"
+                                        placeholder="Enter amount"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-zinc-500 mb-1">UPI ID</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={withdrawUpi}
+                                        onChange={e => setWithdrawUpi(e.target.value)}
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-green-500 outline-none"
+                                        placeholder="username@upi"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={loading || user.walletBalance <= 0}
+                                    className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {loading ? 'Processing...' : 'Request Withdrawal'}
+                                </button>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Recent Activity / Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -82,9 +198,30 @@ const Profile = () => {
 
                 <div className="glass-card p-6 rounded-2xl">
                     <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                        <Wallet className="text-green-400" /> Transaction History
+                        <Wallet className="text-green-400" /> Withdrawal History
                     </h3>
-                    <p className="text-zinc-500 text-center py-8">No transactions found.</p>
+                    {transactions && transactions.length > 0 ? (
+                        <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar">
+                            {transactions.map((txn, i) => (
+                                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                                    <div>
+                                        <div className="text-white font-bold">₹{txn.amount}</div>
+                                        <div className="text-xs text-zinc-500">{new Date(txn.createdAt).toLocaleDateString()}</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className={`text-xs font-bold uppercase ${txn.status === 'approved' ? 'text-green-400' :
+                                            txn.status === 'rejected' ? 'text-red-400' : 'text-amber-400'
+                                            }`}>
+                                            {txn.status}
+                                        </div>
+                                        <div className="text-[10px] text-zinc-600">{txn.upiId}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-zinc-500 text-center py-8">No withdrawals found.</p>
+                    )}
                 </div>
             </div>
         </div>

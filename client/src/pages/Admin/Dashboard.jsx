@@ -103,13 +103,43 @@ const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
     const [banModal, setBanModal] = useState({ show: false, user: null });
     const [banData, setBanData] = useState({ type: 'temporary', duration: '24' }); // duration in hours
+    const [withdrawals, setWithdrawals] = useState([]);
 
     useEffect(() => {
         if (activeTab === 'tournaments') fetchTournaments();
         if (activeTab === 'videos') fetchVideos();
         if (activeTab === 'users') fetchUsers();
         if (activeTab === 'requests') fetchPendingTournaments();
+        if (activeTab === 'withdrawals') fetchWithdrawals();
     }, [activeTab]);
+
+    const fetchWithdrawals = async () => {
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/wallet/admin/requests`, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            setWithdrawals(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleProcessWithdrawal = async (id, status, comment = '') => {
+        if (!window.confirm(`Are you sure you want to ${status} this request?`)) return;
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/wallet/admin/requests/${id}`, {
+                status,
+                comment
+            }, {
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+            toast.success(`Request ${status}`);
+            fetchWithdrawals();
+        } catch (err) {
+            console.error(err);
+            toast.error('Processing failed');
+        }
+    };
 
     const handleRequestBan = async (u) => {
         if (!window.confirm(`Request to ban ${u.name}?`)) return;
