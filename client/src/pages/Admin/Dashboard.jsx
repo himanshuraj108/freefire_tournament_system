@@ -809,7 +809,7 @@ const AdminDashboard = () => {
                                                 {u.role !== 'admin' && u.role !== 'super-admin' && ( // Prevent banning admins
                                                     u.banStatus !== 'none' ? (
                                                         <button
-                                                            onClick={() => handleUnbanUser(u._id)}
+                                                            onClick={() => handleUnbanUser(u)}
                                                             className="text-xs font-bold border border-green-500/50 text-green-400 hover:bg-green-500/20 px-3 py-1 rounded transition-colors"
                                                         >
                                                             Unban
