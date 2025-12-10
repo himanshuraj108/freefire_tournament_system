@@ -227,4 +227,27 @@ router.post('/:id/comment/:comment_id/reply', auth, async (req, res) => {
     }
 });
 
+// @route   DELETE api/videos/:id/comment/:commentId/reply/:replyId
+// @desc    Delete a reply
+// @access  Admin
+router.delete('/:id/comment/:commentId/reply/:replyId', [auth, superAdmin], async (req, res) => {
+    try {
+        const video = await Video.findById(req.params.id);
+        if (!video) return res.status(404).json({ msg: 'Video not found' });
+
+        const comment = video.comments.id(req.params.commentId);
+        if (!comment) return res.status(404).json({ msg: 'Comment not found' });
+
+        const replyIndex = comment.replies.findIndex(r => r._id.toString() === req.params.replyId);
+        if (replyIndex === -1) return res.status(404).json({ msg: 'Reply not found' });
+
+        comment.replies.splice(replyIndex, 1);
+        await video.save();
+        res.json(video.comments);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

@@ -415,7 +415,18 @@ const Videos = () => {
                                                             {c.replies.map((r, i) => (
                                                                 <div key={i} className="bg-black/40 p-3 rounded-lg text-sm group/reply">
                                                                     <div className="flex justify-between items-start">
-                                                                        <span className="font-bold text-zinc-400 text-xs mr-2">{r.name}</span>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="font-bold text-zinc-400 text-xs">{r.name}</span>
+                                                                            {(user?.role === 'admin' || user?.role === 'super-admin') && (
+                                                                                <button
+                                                                                    onClick={() => handleDeleteReply(activeCommentVideo._id, c._id, r._id)}
+                                                                                    className="text-zinc-600 hover:text-red-500 transition-colors"
+                                                                                    title="Delete Reply"
+                                                                                >
+                                                                                    <Trash2 size={10} />
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
                                                                         <button
                                                                             onClick={() => {
                                                                                 setReplyingTo(c._id);
