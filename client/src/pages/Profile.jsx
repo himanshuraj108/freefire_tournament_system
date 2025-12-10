@@ -35,7 +35,7 @@ const Profile = () => {
 
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                         <span className="px-4 py-2 rounded-full glass flex items-center gap-2 text-amber-400 font-bold">
-                            <Wallet className="w-4 h-4" /> ${user.walletBalance || 0}
+                            <Wallet className="w-4 h-4" /> ₹{user.walletBalance || 0}
                         </span>
                         <span className="px-4 py-2 rounded-full glass flex items-center gap-2 text-purple-400 font-bold">
                             <Trophy className="w-4 h-4" /> {user.tournamentsJoined ? user.tournamentsJoined.length : 0} Wins
@@ -61,9 +61,9 @@ const Profile = () => {
                                     <div className="flex justify-between items-start">
                                         <h4 className="font-bold text-white text-sm line-clamp-1">{t.title || `Tournament #${t._id || t}`}</h4>
                                         <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded border ${t.status === 'Open' ? 'text-green-400 border-green-500/30 bg-green-500/10' :
-                                                t.status === 'Ongoing' ? 'text-neon-red border-neon-red/30 bg-neon-red/10 animate-pulse' :
-                                                    t.status === 'Completed' ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' :
-                                                        'text-zinc-500 border-zinc-500/30'
+                                            t.status === 'Ongoing' ? 'text-neon-red border-neon-red/30 bg-neon-red/10 animate-pulse' :
+                                                t.status === 'Completed' ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' :
+                                                    'text-zinc-500 border-zinc-500/30'
                                             }`}>
                                             {t.status || 'Joined'}
                                         </span>

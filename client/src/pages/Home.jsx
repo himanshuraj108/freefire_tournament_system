@@ -36,7 +36,7 @@ const Home = () => {
                 {[
                     { title: "Active Players", val: "10K+", color: "text-neon-blue" },
                     { title: "Daily Tournaments", val: "50+", color: "text-neon-red" },
-                    { title: "Total Prize Pool", val: "$100K", color: "text-amber-400" }
+                    { title: "Total Prize Pool", val: "₹100K", color: "text-amber-400" }
                 ].map((item, i) => (
                     <motion.div
                         key={i}

@@ -83,7 +83,7 @@ const AllTournaments = () => {
                             {/* Status Badge */}
                             <div className="absolute top-4 right-4 z-10">
                                 <span className={`px - 3 py - 1 rounded - full text - xs font - bold uppercase tracking - wider ${t.status === 'Completed' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/20' :
-                                        'bg-zinc-500/20 text-zinc-400 border border-zinc-500/20'
+                                    'bg-zinc-500/20 text-zinc-400 border border-zinc-500/20'
                                     }`}>
                                     {t.status}
                                 </span>
@@ -143,7 +143,7 @@ const AllTournaments = () => {
                                     onClick={() => setWinnerModal(t)}
                                     className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/50 py-2 rounded-lg font-bold transition-all shadow-lg hover:shadow-amber-500/10 flex items-center justify-center gap-2"
                                 >
-                                    <Trophy size={18} /> See Winners
+                                    <p>Entry: ₹{t.entryFee}</p> See Winners
                                 </button>
                             </div>
                         </motion.div>

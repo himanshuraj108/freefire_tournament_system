@@ -143,7 +143,7 @@ const TournamentRoom = () => {
                                         {/* Loser Cashback Badge */}
                                         {isLoser && (
                                             <div className="absolute -top-3 -right-2 bg-zinc-700 text-zinc-300 text-[10px] font-bold px-2 py-0.5 rounded-full shadow border border-white/10 flex items-center gap-1">
-                                                <span>↩ ${cashbackAmount}</span>
+                                                <span>↩ ₹{cashbackAmount}</span>
                                             </div>
                                         )}
 

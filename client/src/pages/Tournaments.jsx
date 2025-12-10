@@ -390,7 +390,7 @@ const Tournaments = () => {
                                     disabled={loading}
                                     className="w-full btn-primary py-3 rounded-xl font-bold mt-4 disabled:opacity-50"
                                 >
-                                    {loading ? 'Processing...' : `Pay $${selectedTournament.entryFee} & Join`}
+                                    {loading ? 'Processing...' : `Pay ₹${selectedTournament.entryFee} & Join`}
                                 </button>
                             </form>
                         </motion.div>

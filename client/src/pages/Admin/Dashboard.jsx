@@ -50,7 +50,7 @@ const AdminDashboard = () => {
         const adminCut = revenue * (editAdminFee / 100);
         const userPot = revenue - adminCut;
 
-        const newPrizePoolText = `$${Math.floor(userPot)}`;
+        const newPrizePoolText = `₹${Math.floor(userPot)}`;
 
         const winners = parseInt(editFormData.totalWinners) || 1;
         let distribution = [];
