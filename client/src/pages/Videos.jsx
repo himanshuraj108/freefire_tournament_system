@@ -113,6 +113,22 @@ const Videos = () => {
         } catch (err) { alert('Error posting reply'); }
     };
 
+    const handleDeleteComment = async (videoId, commentId) => {
+        if (!window.confirm('Delete this comment?')) return;
+        try {
+            await axios.delete(`${import.meta.env.VITE_API_URL}/videos/${videoId}/comment/${commentId}`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/videos`);
+            const updatedVideo = res.data.find(v => v._id === videoId);
+
+            setVideos(res.data);
+            if (activeCommentVideo && activeCommentVideo._id === videoId) {
+                setActiveCommentVideo(updatedVideo);
+            }
+        } catch (err) {
+            alert('Failed to delete comment');
+        }
+    };
+
     // Helper to fetch videos
     const fetchVideos = async () => {
         try {
