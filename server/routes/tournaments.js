@@ -249,6 +249,26 @@ router.put('/:id/chat-toggle', [auth, admin], async (req, res) => {
     }
 });
 
+// @route   DELETE api/tournaments/:id/chat/:messageId
+// @desc    Delete a message
+// @access  Admin
+router.delete('/:id/chat/:messageId', [auth, admin], async (req, res) => {
+    try {
+        const tournament = await Tournament.findById(req.params.id);
+        if (!tournament) return res.status(404).json({ msg: 'Tournament not found' });
+
+        const msgIndex = tournament.messages.findIndex(m => m._id.toString() === req.params.messageId);
+        if (msgIndex === -1) return res.status(404).json({ msg: 'Message not found' });
+
+        tournament.messages.splice(msgIndex, 1);
+        await tournament.save();
+        res.json(tournament.messages);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   POST api/tournaments/:id/chat
 // @desc    Send Message
 // @access  Private

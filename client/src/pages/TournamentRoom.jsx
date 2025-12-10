@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { IoSend } from "react-icons/io5";
-import { Send, Settings, Users, MessageSquare, Shield, PlayCircle, StopCircle, Lock, Unlock, ArrowRight } from 'lucide-react';
+import { Send, Settings, Users, MessageSquare, Shield, PlayCircle, StopCircle, Lock, Unlock, ArrowRight, Trash2 } from 'lucide-react';
 
 const TournamentRoom = () => {
     const { id } = useParams();
@@ -41,6 +41,16 @@ const TournamentRoom = () => {
             fetchTournament();
         } catch (err) {
             alert('Failed to send (Chat might be disabled)');
+        }
+    };
+
+    const handleDeleteMessage = async (msgId) => {
+        if (!window.confirm('Delete this message?')) return;
+        try {
+            await axios.delete(`${import.meta.env.VITE_API_URL}/tournaments/${id}/chat/${msgId}`);
+            fetchTournament();
+        } catch (err) {
+            alert('Failed to delete message');
         }
     };
 
@@ -209,13 +219,22 @@ const TournamentRoom = () => {
                                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
-                                <div className={`px-4 py-2 rounded-2xl max-w-[85%] break-words ${isAdminMsg
+                                <div className={`px-4 py-2 rounded-2xl max-w-[85%] break-words relative group/msg ${isAdminMsg
                                     ? 'bg-gradient-to-r from-neon-red/20 to-orange-500/20 border border-neon-red/50 text-white shadow-[0_0_15px_rgba(255,0,0,0.2)]' // Admin Style
                                     : msg.sender._id === user?.id
                                         ? 'bg-neon-blue/20 text-white rounded-br-none border border-neon-blue/30'
                                         : 'bg-white/10 text-zinc-200 rounded-bl-none'
                                     }`}>
                                     {msg.text}
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => handleDeleteMessage(msg._id)}
+                                            className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 opacity-0 group-hover/msg:opacity-100 transition-opacity text-white hover:bg-red-600 shadow-lg"
+                                            title="Delete Message"
+                                        >
+                                            <Trash2 size={10} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );

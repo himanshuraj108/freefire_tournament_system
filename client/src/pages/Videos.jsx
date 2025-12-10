@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Play, X, Plus, ThumbsUp, ThumbsDown, MessageSquare, Send, Share2 } from 'lucide-react'; // Added Share2
+import { Play, X, Plus, ThumbsUp, ThumbsDown, MessageSquare, Send, Share2, Trash2 } from 'lucide-react'; // Added Share2
 import { IoSend } from "react-icons/io5";
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -305,10 +305,19 @@ const Videos = () => {
                                                 {/* Comment List */}
                                                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                                                     {(v.comments || []).filter(c => c).map((c, i) => (
-                                                        <div key={i} className="text-sm bg-white/5 p-3 rounded-lg">
+                                                        <div key={i} className="text-sm bg-white/5 p-3 rounded-lg relative group/item">
                                                             <div className="flex justify-between items-start mb-1">
                                                                 <span className="font-bold text-neon-blue">{c.name || 'User'}</span>
                                                                 <span className="text-[10px] text-zinc-500">{c.date ? new Date(c.date).toLocaleDateString() : ''}</span>
+                                                                {(user?.role === 'admin' || user?.role === 'super-admin') && (
+                                                                    <button
+                                                                        onClick={() => handleDeleteComment(v._id, c._id)}
+                                                                        className="absolute top-2 right-2 text-zinc-600 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                                                        title="Delete"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                             <p className="text-zinc-300">{c.text}</p>
                                                         </div>
@@ -367,6 +376,15 @@ const Videos = () => {
                                                     <button onClick={() => handleCommentDislike(activeCommentVideo, c._id)} className={`flex items-center gap-1 hover:text-red-500 ${c.dislikes?.includes(user?.id) ? 'text-red-500' : ''}`}>
                                                         <ThumbsDown size={12} /> {c.dislikes?.length || 0}
                                                     </button>
+                                                    {(user?.role === 'admin' || user?.role === 'super-admin') && (
+                                                        <button
+                                                            onClick={() => handleDeleteComment(activeCommentVideo._id, c._id)}
+                                                            className="flex items-center gap-1 text-zinc-500 hover:text-red-500 transition-colors"
+                                                            title="Delete Comment"
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    )}
                                                     <button onClick={() => setReplyingTo(replyingTo === c._id ? null : c._id)} className="hover:text-white">
                                                         Reply
                                                     </button>
