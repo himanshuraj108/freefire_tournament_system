@@ -168,7 +168,7 @@ const Tournaments = () => {
                                     <span className="flex items-center gap-2 text-zinc-400">
                                         <Trophy className="w-4 h-4 text-amber-400" /> Prize Pool
                                     </span>
-                                    <span className="text-amber-400 font-bold">{t.prizePool}</span>
+                                    <span className="text-amber-400 font-bold">{t.prizePool.replace('$', '₹')}</span>
                                 </div>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="flex items-center gap-2 text-zinc-400">
@@ -459,7 +459,7 @@ const Tournaments = () => {
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-xs text-zinc-400 uppercase">Prize</p>
-                                                <p className="font-bold text-white">{winner.prize}</p>
+                                                <p className="font-bold text-white">{winner.prize.replace('$', '₹')}</p>
                                             </div>
                                         </div>
                                     ))

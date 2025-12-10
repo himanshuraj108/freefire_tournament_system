@@ -75,7 +75,7 @@ const AdminDashboard = () => {
                 else amount = remainingPot * 0.5;
             }
             remainingPot -= amount;
-            distribution.push(`$${Math.floor(amount)}`);
+            distribution.push(`₹${Math.floor(amount)}`);
         }
 
         setEditFormData(prev => ({
@@ -206,7 +206,7 @@ const AdminDashboard = () => {
         const userPot = revenue - adminCut;
 
         // Auto-set Prize Pool Text
-        const newPrizePoolText = `$${Math.floor(userPot)}`;
+        const newPrizePoolText = `₹${Math.floor(userPot)}`;
 
         // Distribute
         const winners = parseInt(formData.totalWinners) || 1;
@@ -238,7 +238,7 @@ const AdminDashboard = () => {
                 }
             }
             remainingPot -= amount;
-            distribution.push(`$${Math.floor(amount)}`);
+            distribution.push(`₹${Math.floor(amount)}`);
         }
 
         setFormData(prev => ({

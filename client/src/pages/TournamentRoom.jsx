@@ -136,7 +136,7 @@ const TournamentRoom = () => {
                                         {winnerInfo && (
                                             <div className="absolute -top-3 -right-2 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/20 flex items-center gap-1">
                                                 <span>#{winnerInfo.position}</span>
-                                                <span>🏆 {winnerInfo.prize}</span>
+                                                <span>🏆 {winnerInfo.prize.replace('$', '₹')}</span>
                                             </div>
                                         )}
 
